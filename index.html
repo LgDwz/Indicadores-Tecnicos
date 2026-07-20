@@ -162,6 +162,7 @@
   /* ---------- Admin-only: overview & detail ---------- */
   #admin-dashboard{display:none;}
   #admin-dashboard .wrap{max-width:1240px;}
+  #gestor-dashboard .wrap{max-width:1240px;}
   .banner{
     display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
     background:var(--border);border:1px solid var(--border);border-radius:var(--radius);
@@ -222,14 +223,33 @@
   @media (max-width:560px){ .team-strip{grid-template-columns:repeat(2,1fr);} }
 
   .metric-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
-  select#metric-select{
+  .msel{position:relative;display:inline-block;}
+  .msel-btn{
     background:var(--bg-elev);color:var(--text);border:1px solid var(--border);border-radius:8px;
     padding:8px 12px;font-family:var(--font-body);font-size:13px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:space-between;gap:10px;min-width:190px;
   }
+  .msel-btn:hover{border-color:#2c3644;}
+  .msel-btn .msel-arrow{color:var(--text-mute);font-size:10px;transition:transform .15s ease;}
+  .msel.open .msel-btn .msel-arrow{transform:rotate(180deg);}
+  .msel-panel{
+    position:absolute;top:calc(100% + 6px);left:0;min-width:100%;
+    background:var(--bg-elev);border:1px solid var(--border);border-radius:9px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.45);z-index:30;overflow:hidden;display:none;
+  }
+  .msel.open .msel-panel{display:block;}
+  .msel-option{padding:9px 13px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;}
+  .msel-option:hover{background:var(--bg-card-hover);color:var(--accent);}
+  .msel-option.selected{color:var(--accent);background:var(--accent-dim);}
   .legend-line{display:flex;gap:16px;font-size:11.5px;color:var(--text-mute);flex-wrap:wrap;}
   .legend-line span{display:inline-flex;align-items:center;gap:6px;}
   .legend-line i{width:8px;height:8px;border-radius:50%;display:inline-block;}
   .detail-chart{height:340px;margin-bottom:30px;}
+  .chart-scroll-inner{height:100%;}
+  @media (max-width:700px){
+    .chart-card.detail-chart{overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;}
+    .chart-scroll-inner{min-width:820px;}
+  }
 
   table.tech-table{width:100%;border-collapse:collapse;font-size:13px;}
   table.tech-table thead th{
@@ -350,37 +370,6 @@
 
     <div class="banner" id="admin-banner"></div>
 
-    <section id="admin-access-panel" class="card" style="margin-bottom:32px;">
-      <div class="section-title">
-        <h2>Gerenciar acessos dos técnicos</h2>
-        <span class="hint">Redefina a senha de alguém que esqueceu — o próximo login dele vira "primeiro acesso" de novo</span>
-      </div>
-      <div class="field-wrap" style="margin-bottom:14px;max-width:360px;">
-        <input type="text" id="access-search" placeholder="Buscar técnico por nome...">
-      </div>
-      <div class="table-scroll">
-        <table class="tech-table" id="access-table">
-          <thead><tr><th style="text-align:left;">Técnico</th><th>Gestor</th><th>Status</th><th></th></tr></thead>
-          <tbody id="access-tbody"></tbody>
-        </table>
-      </div>
-      <div id="access-msg" style="margin-top:10px;"></div>
-
-      <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
-        <button class="btn-link" id="toggle-master-pw" style="margin:0;padding:0;">Trocar minha senha master →</button>
-        <div id="master-pw-form" style="display:none;max-width:360px;margin-top:12px;">
-          <label for="master-pw-current">Senha master atual</label>
-          <input type="password" id="master-pw-current" autocomplete="current-password">
-          <label for="master-pw-new2f">Nova senha master</label>
-          <input type="password" id="master-pw-new2f" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
-          <label for="master-pw-confirm2f">Confirme a nova senha</label>
-          <input type="password" id="master-pw-confirm2f" autocomplete="new-password">
-          <button class="btn-primary" id="save-master-pw-btn">Salvar nova senha master</button>
-          <div id="master-pw-msg"></div>
-        </div>
-      </div>
-    </section>
-
     <section id="admin-overview-panel">
       <div class="section-title">
         <h2>Visão por Gestor</h2>
@@ -396,6 +385,43 @@
       </div>
     </section>
 
+    <section id="admin-access-panel" class="card" style="margin-bottom:32px;">
+      <button type="button" id="access-panel-toggle" style="width:100%;background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;">
+        <div class="section-title" style="margin:0;flex:1;">
+          <h2>Gerenciar acessos dos técnicos</h2>
+          <span class="hint">Redefina a senha de alguém que esqueceu, ou troque sua senha master</span>
+        </div>
+        <span id="access-panel-arrow" style="color:var(--text-mute);font-size:13px;flex-shrink:0;">Expandir ▾</span>
+      </button>
+
+      <div id="access-panel-body" style="display:none;margin-top:18px;">
+        <div class="field-wrap" style="margin-bottom:14px;max-width:360px;">
+          <input type="text" id="access-search" placeholder="Buscar técnico por nome...">
+        </div>
+        <div class="table-scroll">
+          <table class="tech-table" id="access-table">
+            <thead><tr><th style="text-align:left;">Técnico</th><th>Gestor</th><th>Status</th><th></th></tr></thead>
+            <tbody id="access-tbody"></tbody>
+          </table>
+        </div>
+        <div id="access-msg" style="margin-top:10px;"></div>
+
+        <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+          <button class="btn-link" id="toggle-master-pw" style="margin:0;padding:0;">Trocar minha senha master →</button>
+          <div id="master-pw-form" style="display:none;max-width:360px;margin-top:12px;">
+            <label for="master-pw-current">Senha master atual</label>
+            <input type="password" id="master-pw-current" autocomplete="current-password">
+            <label for="master-pw-new2f">Nova senha master</label>
+            <input type="password" id="master-pw-new2f" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+            <label for="master-pw-confirm2f">Confirme a nova senha</label>
+            <input type="password" id="master-pw-confirm2f" autocomplete="new-password">
+            <button class="btn-primary" id="save-master-pw-btn">Salvar nova senha master</button>
+            <div id="master-pw-msg"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="admin-detail-panel">
       <div class="backbar">
         <button class="back-btn" id="admin-back-btn">&larr; Voltar para gestores</button>
@@ -407,7 +433,7 @@
       <div class="metric-toolbar">
         <div>
           <label for="admin-metric-select" style="font-size:12px;color:var(--text-mute);margin-right:8px;display:inline;text-transform:none;">Métrica do gráfico</label>
-          <select id="admin-metric-select"></select>
+          <div class="msel" id="admin-metric-select"></div>
         </div>
         <div class="legend-line">
           <span><i style="background:var(--good)"></i> Acima/na meta</span>
@@ -416,10 +442,15 @@
         </div>
       </div>
 
-      <div class="chart-card detail-chart"><canvas id="admin-tech-chart"></canvas></div>
+      <div class="chart-card detail-chart"><div class="chart-scroll-inner"><canvas id="admin-tech-chart"></canvas></div></div>
 
       <div class="table-scroll">
-        <p style="font-size:12px;color:var(--text-mute);margin:4px 6px 12px;">Clique em um técnico para ver todos os indicadores e o volume de cada atividade realizada.</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 6px 12px;">
+          <p style="font-size:12px;color:var(--text-mute);margin:0;">Clique em um técnico para ver todos os indicadores e o volume de cada atividade realizada.</p>
+          <div class="field-wrap" style="max-width:260px;flex:1;min-width:200px;">
+            <input type="text" id="admin-tech-search" placeholder="Buscar técnico..." style="padding:8px 12px;font-size:13px;">
+          </div>
+        </div>
         <table class="tech-table" id="admin-tech-table">
           <thead><tr id="admin-tech-thead-row"></tr></thead>
           <tbody id="admin-tech-tbody"></tbody>
@@ -496,7 +527,7 @@
     <div class="metric-toolbar">
       <div>
         <label for="gestor-metric-select" style="font-size:12px;color:var(--text-mute);margin-right:8px;display:inline;text-transform:none;">Métrica do gráfico</label>
-        <select id="gestor-metric-select"></select>
+        <div class="msel" id="gestor-metric-select"></div>
       </div>
       <div class="legend-line">
         <span><i style="background:var(--good)"></i> Acima/na meta</span>
@@ -505,10 +536,15 @@
       </div>
     </div>
 
-    <div class="chart-card detail-chart"><canvas id="gestor-tech-chart"></canvas></div>
+    <div class="chart-card detail-chart"><div class="chart-scroll-inner"><canvas id="gestor-tech-chart"></canvas></div></div>
 
     <div class="table-scroll">
-      <p style="font-size:12px;color:var(--text-mute);margin:4px 6px 12px;">Clique em um técnico para ver todos os indicadores e o volume de cada atividade realizada.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 6px 12px;">
+        <p style="font-size:12px;color:var(--text-mute);margin:0;">Clique em um técnico para ver todos os indicadores e o volume de cada atividade realizada.</p>
+        <div class="field-wrap" style="max-width:260px;flex:1;min-width:200px;">
+          <input type="text" id="gestor-tech-search" placeholder="Buscar técnico..." style="padding:8px 12px;font-size:13px;">
+        </div>
+      </div>
       <table class="tech-table" id="gestor-tech-table">
         <thead><tr id="gestor-tech-thead-row"></tr></thead>
         <tbody id="gestor-tech-tbody"></tbody>
@@ -980,6 +1016,8 @@ let adminExpandedTechKey = null;
 let gestorSortState = {key:'composite', dir:'desc'};
 let gestorExpandedTechKey = null;
 let currentGestorScope = null;
+let adminTechSearchTerm = '';
+let gestorTechSearchTerm = '';
 
 function metricScoreFor(key, t){
   if(key==='composite') return t.composite;
@@ -988,16 +1026,50 @@ function metricScoreFor(key, t){
   return def.higherBetter ? scoreHigherBetter(def.get(t), def.meta) : scoreLowerBetter(def.get(t), def.meta);
 }
 function populateMetricSelect(prefix, gestor){
-  const sel = document.getElementById(prefix+'-metric-select');
-  sel.innerHTML = Object.entries(METRIC_DEFS).map(([k,d])=>`<option value="${k}">${d.label}</option>`).join('');
-  sel.value = 'composite';
-  sel.onchange = ()=> renderTechChart(prefix, gestor, sel.value);
+  const wrap = document.getElementById(prefix+'-metric-select');
+  const entries = Object.entries(METRIC_DEFS);
+  wrap.dataset.value = 'composite';
+  wrap.innerHTML = `
+    <button type="button" class="msel-btn">
+      <span class="msel-label">${METRIC_DEFS['composite'].label}</span>
+      <span class="msel-arrow">▾</span>
+    </button>
+    <div class="msel-panel">
+      ${entries.map(([k,d])=>`<div class="msel-option ${k==='composite'?'selected':''}" data-value="${k}">${d.label}</div>`).join('')}
+    </div>
+  `;
+  const btn = wrap.querySelector('.msel-btn');
+  const panel = wrap.querySelector('.msel-panel');
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    document.querySelectorAll('.msel.open').forEach(el=>{ if(el!==wrap) el.classList.remove('open'); });
+    wrap.classList.toggle('open');
+  });
+  panel.querySelectorAll('.msel-option').forEach(opt=>{
+    opt.addEventListener('click', ()=>{
+      const val = opt.dataset.value;
+      wrap.dataset.value = val;
+      wrap.querySelector('.msel-label').textContent = METRIC_DEFS[val].label;
+      panel.querySelectorAll('.msel-option').forEach(o=>o.classList.toggle('selected', o===opt));
+      wrap.classList.remove('open');
+      renderTechChart(prefix, gestor, val);
+    });
+  });
 }
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.msel')){
+    document.querySelectorAll('.msel.open').forEach(el=>el.classList.remove('open'));
+  }
+});
 
 function openAdminDetail(gestor){
   currentAdminGestor = gestor;
   adminExpandedTechKey = null;
+  adminTechSearchTerm = '';
+  const adminSearchInput = document.getElementById('admin-tech-search');
+  if(adminSearchInput) adminSearchInput.value = '';
   document.getElementById('admin-overview-panel').style.display = 'none';
+  document.getElementById('admin-access-panel').style.display = 'none';
   document.getElementById('admin-detail-panel').style.display = 'block';
   window.scrollTo({top:0, behavior:'smooth'});
   document.getElementById('admin-chip-swatch').style.background = GHEX[gestor];
@@ -1012,6 +1084,7 @@ function openAdminDetail(gestor){
 function closeAdminDetail(){
   document.getElementById('admin-detail-panel').style.display = 'none';
   document.getElementById('admin-overview-panel').style.display = 'block';
+  document.getElementById('admin-access-panel').style.display = 'block';
   window.scrollTo({top:0, behavior:'smooth'});
 }
 document.getElementById('admin-back-btn').addEventListener('click', closeAdminDetail);
@@ -1127,7 +1200,11 @@ function renderGestorTableHead(gestor){
 function renderTechTable(prefix, gestor){
   const isAdmin = prefix === 'admin';
   const sortState = isAdmin ? adminSortState : gestorSortState;
-  const list = [...gestores[gestor]];
+  const searchTerm = (isAdmin ? adminTechSearchTerm : gestorTechSearchTerm).trim().toLowerCase();
+  let list = [...gestores[gestor]];
+  if(searchTerm){
+    list = list.filter(t => t.display.toLowerCase().includes(searchTerm));
+  }
   const col = TABLE_COLS.find(c=>c.key===sortState.key);
   list.sort((a,b)=>{
     let va = col.sort(a), vb = col.sort(b);
@@ -1143,6 +1220,10 @@ function renderTechTable(prefix, gestor){
   });
   const tbody = document.getElementById(prefix+'-tech-tbody');
   const expandedKey = isAdmin ? adminExpandedTechKey : gestorExpandedTechKey;
+  if(list.length === 0){
+    tbody.innerHTML = `<tr><td colspan="${TABLE_COLS.length}" style="text-align:center;color:var(--text-mute);font-family:var(--font-body);padding:18px;">Nenhum técnico encontrado.</td></tr>`;
+    return;
+  }
   tbody.innerHTML = list.map(t=>{
     const rowKey = gestor+'|'+t.nome;
     const isOpen = expandedKey === rowKey;
@@ -1160,9 +1241,21 @@ function renderTechTable(prefix, gestor){
   });
 }
 
+document.getElementById('admin-tech-search').addEventListener('input', (e)=>{
+  adminTechSearchTerm = e.target.value;
+  if(currentAdminGestor) renderTechTable('admin', currentAdminGestor);
+});
+document.getElementById('gestor-tech-search').addEventListener('input', (e)=>{
+  gestorTechSearchTerm = e.target.value;
+  if(currentGestorScope) renderTechTable('gestor', currentGestorScope);
+});
+
 function enterGestorDashboard(gestor){
   currentGestorScope = gestor;
   gestorExpandedTechKey = null;
+  gestorTechSearchTerm = '';
+  const gestorSearchInput = document.getElementById('gestor-tech-search');
+  if(gestorSearchInput) gestorSearchInput.value = '';
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('gestor-dashboard').style.display = 'block';
   document.getElementById('gestor-dash-title').textContent = 'Equipe de ' + (gestor.charAt(0)+gestor.slice(1).toLowerCase());
@@ -1258,6 +1351,14 @@ async function doResetPassword(slug, name){
     msg.innerHTML = `<div class="msg err">Não consegui redefinir agora. Tente novamente.</div>`;
   }
 }
+
+document.getElementById('access-panel-toggle').addEventListener('click', ()=>{
+  const body = document.getElementById('access-panel-body');
+  const arrow = document.getElementById('access-panel-arrow');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? 'Expandir ▾' : 'Recolher ▴';
+});
 
 document.getElementById('access-search').addEventListener('input', (e)=>{
   accessSearchTerm = e.target.value;
