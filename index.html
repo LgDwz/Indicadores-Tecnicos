@@ -400,7 +400,7 @@
         </div>
         <div class="table-scroll">
           <table class="tech-table" id="access-table">
-            <thead><tr><th style="text-align:left;">Técnico</th><th>Gestor</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th style="text-align:left;">Nome</th><th>Tipo</th><th>Gestor</th><th>Status</th><th></th></tr></thead>
             <tbody id="access-tbody"></tbody>
           </table>
         </div>
@@ -1298,19 +1298,35 @@ async function renderAccessTable(){
 
   const tbody = document.getElementById('access-tbody');
   const term = accessSearchTerm.toLowerCase();
-  const list = TECS.filter(t=>t.display.toLowerCase().includes(term))
-    .sort((a,b)=>a.display.localeCompare(b.display));
 
-  tbody.innerHTML = list.map(t=>{
-    const has = registeredSlugs.has(t.slug);
+  const tecEntries = TECS.map(t=>({
+    display: t.display, slug: t.slug, group: t.gestor, tipo: 'Técnico'
+  }));
+  const gestorEntries = GESTOR_LIST.map(g=>({
+    display: g.charAt(0)+g.slice(1).toLowerCase(), slug: gestorSlug(g), group: '—', tipo: 'Gestor'
+  }));
+
+  const combined = [...gestorEntries, ...tecEntries]
+    .filter(e=>e.display.toLowerCase().includes(term))
+    .sort((a,b)=>{
+      if(a.tipo !== b.tipo) return a.tipo === 'Gestor' ? -1 : 1;
+      return a.display.localeCompare(b.display);
+    });
+
+  tbody.innerHTML = combined.map(e=>{
+    const has = registeredSlugs.has(e.slug);
     const statusHTML = has
       ? `<span class="badge" style="background:var(--good-dim);color:var(--good);">Senha criada</span>`
       : `<span class="badge" style="background:var(--border-soft);color:var(--text-mute);">Aguardando 1º acesso</span>`;
+    const tipoHTML = e.tipo === 'Gestor'
+      ? `<span class="badge" style="background:var(--accent-dim);color:var(--accent);">Gestor</span>`
+      : `<span style="color:var(--text-mute);">Técnico</span>`;
     return `<tr>
-      <td style="text-align:left;font-family:var(--font-body);color:var(--text);">${t.display}</td>
-      <td>${t.gestor.charAt(0)+t.gestor.slice(1).toLowerCase()}</td>
+      <td style="text-align:left;font-family:var(--font-body);color:var(--text);">${e.display}</td>
+      <td>${tipoHTML}</td>
+      <td>${e.group === '—' ? '—' : e.group.charAt(0)+e.group.slice(1).toLowerCase()}</td>
       <td>${statusHTML}</td>
-      <td>${has ? `<button class="back-btn reset-pw-btn" data-slug="${t.slug}" data-name="${t.display.replace(/"/g,'&quot;')}" style="padding:5px 10px;font-size:12px;">Redefinir senha</button>` : '—'}</td>
+      <td>${has ? `<button class="back-btn reset-pw-btn" data-slug="${e.slug}" data-name="${e.display.replace(/"/g,'&quot;')}" style="padding:5px 10px;font-size:12px;">Redefinir senha</button>` : '—'}</td>
     </tr>`;
   }).join('');
 
