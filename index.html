@@ -162,7 +162,6 @@
   /* ---------- Admin-only: overview & detail ---------- */
   #admin-dashboard{display:none;}
   #admin-dashboard .wrap{max-width:1240px;}
-  #gestor-dashboard .wrap{max-width:1240px;}
   .banner{
     display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
     background:var(--border);border:1px solid var(--border);border-radius:var(--radius);
@@ -223,33 +222,14 @@
   @media (max-width:560px){ .team-strip{grid-template-columns:repeat(2,1fr);} }
 
   .metric-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
-  .msel{position:relative;display:inline-block;}
-  .msel-btn{
+  select#metric-select{
     background:var(--bg-elev);color:var(--text);border:1px solid var(--border);border-radius:8px;
     padding:8px 12px;font-family:var(--font-body);font-size:13px;cursor:pointer;
-    display:inline-flex;align-items:center;justify-content:space-between;gap:10px;min-width:190px;
   }
-  .msel-btn:hover{border-color:#2c3644;}
-  .msel-btn .msel-arrow{color:var(--text-mute);font-size:10px;transition:transform .15s ease;}
-  .msel.open .msel-btn .msel-arrow{transform:rotate(180deg);}
-  .msel-panel{
-    position:absolute;top:calc(100% + 6px);left:0;min-width:100%;
-    background:var(--bg-elev);border:1px solid var(--border);border-radius:9px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.45);z-index:30;overflow:hidden;display:none;
-  }
-  .msel.open .msel-panel{display:block;}
-  .msel-option{padding:9px 13px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;}
-  .msel-option:hover{background:var(--bg-card-hover);color:var(--accent);}
-  .msel-option.selected{color:var(--accent);background:var(--accent-dim);}
   .legend-line{display:flex;gap:16px;font-size:11.5px;color:var(--text-mute);flex-wrap:wrap;}
   .legend-line span{display:inline-flex;align-items:center;gap:6px;}
   .legend-line i{width:8px;height:8px;border-radius:50%;display:inline-block;}
   .detail-chart{height:340px;margin-bottom:30px;}
-  .chart-scroll-inner{height:100%;}
-  @media (max-width:700px){
-    .chart-card.detail-chart{overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;}
-    .chart-scroll-inner{min-width:820px;}
-  }
 
   table.tech-table{width:100%;border-collapse:collapse;font-size:13px;}
   table.tech-table thead th{
@@ -294,7 +274,6 @@
       <div class="eyebrow" style="justify-content:center;"><span class="dot"></span> Painel Operacional</div>
       <h1>Meu Painel de Indicadores</h1>
       <p>Digite seu nome para acessar apenas os seus dados</p>
-      <p id="live-data-status" style="font-size:10.5px;color:var(--text-mute);margin-top:6px;"></p>
     </div>
 
     <div id="step-name">
@@ -371,6 +350,37 @@
 
     <div class="banner" id="admin-banner"></div>
 
+    <section id="admin-access-panel" class="card" style="margin-bottom:32px;">
+      <div class="section-title">
+        <h2>Gerenciar acessos dos técnicos</h2>
+        <span class="hint">Redefina a senha de alguém que esqueceu — o próximo login dele vira "primeiro acesso" de novo</span>
+      </div>
+      <div class="field-wrap" style="margin-bottom:14px;max-width:360px;">
+        <input type="text" id="access-search" placeholder="Buscar técnico por nome...">
+      </div>
+      <div class="table-scroll">
+        <table class="tech-table" id="access-table">
+          <thead><tr><th style="text-align:left;">Técnico</th><th>Gestor</th><th>Status</th><th></th></tr></thead>
+          <tbody id="access-tbody"></tbody>
+        </table>
+      </div>
+      <div id="access-msg" style="margin-top:10px;"></div>
+
+      <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+        <button class="btn-link" id="toggle-master-pw" style="margin:0;padding:0;">Trocar minha senha master →</button>
+        <div id="master-pw-form" style="display:none;max-width:360px;margin-top:12px;">
+          <label for="master-pw-current">Senha master atual</label>
+          <input type="password" id="master-pw-current" autocomplete="current-password">
+          <label for="master-pw-new2f">Nova senha master</label>
+          <input type="password" id="master-pw-new2f" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+          <label for="master-pw-confirm2f">Confirme a nova senha</label>
+          <input type="password" id="master-pw-confirm2f" autocomplete="new-password">
+          <button class="btn-primary" id="save-master-pw-btn">Salvar nova senha master</button>
+          <div id="master-pw-msg"></div>
+        </div>
+      </div>
+    </section>
+
     <section id="admin-overview-panel">
       <div class="section-title">
         <h2>Visão por Gestor</h2>
@@ -386,43 +396,6 @@
       </div>
     </section>
 
-    <section id="admin-access-panel" class="card" style="margin-bottom:32px;">
-      <button type="button" id="access-panel-toggle" style="width:100%;background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;">
-        <div class="section-title" style="margin:0;flex:1;">
-          <h2>Gerenciar acessos dos técnicos</h2>
-          <span class="hint">Redefina a senha de alguém que esqueceu, ou troque sua senha master</span>
-        </div>
-        <span id="access-panel-arrow" style="color:var(--text-mute);font-size:13px;flex-shrink:0;">Expandir ▾</span>
-      </button>
-
-      <div id="access-panel-body" style="display:none;margin-top:18px;">
-        <div class="field-wrap" style="margin-bottom:14px;max-width:360px;">
-          <input type="text" id="access-search" placeholder="Buscar técnico por nome...">
-        </div>
-        <div class="table-scroll">
-          <table class="tech-table" id="access-table">
-            <thead><tr><th style="text-align:left;">Nome</th><th>Tipo</th><th>Gestor</th><th>Status</th><th></th></tr></thead>
-            <tbody id="access-tbody"></tbody>
-          </table>
-        </div>
-        <div id="access-msg" style="margin-top:10px;"></div>
-
-        <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
-          <button class="btn-link" id="toggle-master-pw" style="margin:0;padding:0;">Trocar minha senha master →</button>
-          <div id="master-pw-form" style="display:none;max-width:360px;margin-top:12px;">
-            <label for="master-pw-current">Senha master atual</label>
-            <input type="password" id="master-pw-current" autocomplete="current-password">
-            <label for="master-pw-new2f">Nova senha master</label>
-            <input type="password" id="master-pw-new2f" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
-            <label for="master-pw-confirm2f">Confirme a nova senha</label>
-            <input type="password" id="master-pw-confirm2f" autocomplete="new-password">
-            <button class="btn-primary" id="save-master-pw-btn">Salvar nova senha master</button>
-            <div id="master-pw-msg"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section id="admin-detail-panel">
       <div class="backbar">
         <button class="back-btn" id="admin-back-btn">&larr; Voltar para gestores</button>
@@ -434,7 +407,7 @@
       <div class="metric-toolbar">
         <div>
           <label for="admin-metric-select" style="font-size:12px;color:var(--text-mute);margin-right:8px;display:inline;text-transform:none;">Métrica do gráfico</label>
-          <div class="msel" id="admin-metric-select"></div>
+          <select id="admin-metric-select"></select>
         </div>
         <div class="legend-line">
           <span><i style="background:var(--good)"></i> Acima/na meta</span>
@@ -443,15 +416,10 @@
         </div>
       </div>
 
-      <div class="chart-card detail-chart"><div class="chart-scroll-inner"><canvas id="admin-tech-chart"></canvas></div></div>
+      <div class="chart-card detail-chart"><canvas id="admin-tech-chart"></canvas></div>
 
       <div class="table-scroll">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 6px 12px;">
-          <p style="font-size:12px;color:var(--text-mute);margin:0;">Clique em um técnico para ver todos os indicadores e o volume de cada atividade realizada.</p>
-          <div class="field-wrap" style="max-width:260px;flex:1;min-width:200px;">
-            <input type="text" id="admin-tech-search" placeholder="Buscar técnico..." style="padding:8px 12px;font-size:13px;">
-          </div>
-        </div>
+        <p style="font-size:12px;color:var(--text-mute);margin:4px 6px 12px;">Clique em um técnico para ver todos os indicadores e o volume de cada atividade realizada.</p>
         <table class="tech-table" id="admin-tech-table">
           <thead><tr id="admin-tech-thead-row"></tr></thead>
           <tbody id="admin-tech-tbody"></tbody>
@@ -528,7 +496,7 @@
     <div class="metric-toolbar">
       <div>
         <label for="gestor-metric-select" style="font-size:12px;color:var(--text-mute);margin-right:8px;display:inline;text-transform:none;">Métrica do gráfico</label>
-        <div class="msel" id="gestor-metric-select"></div>
+        <select id="gestor-metric-select"></select>
       </div>
       <div class="legend-line">
         <span><i style="background:var(--good)"></i> Acima/na meta</span>
@@ -537,15 +505,10 @@
       </div>
     </div>
 
-    <div class="chart-card detail-chart"><div class="chart-scroll-inner"><canvas id="gestor-tech-chart"></canvas></div></div>
+    <div class="chart-card detail-chart"><canvas id="gestor-tech-chart"></canvas></div>
 
     <div class="table-scroll">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 6px 12px;">
-        <p style="font-size:12px;color:var(--text-mute);margin:0;">Clique em um técnico para ver todos os indicadores e o volume de cada atividade realizada.</p>
-        <div class="field-wrap" style="max-width:260px;flex:1;min-width:200px;">
-          <input type="text" id="gestor-tech-search" placeholder="Buscar técnico..." style="padding:8px 12px;font-size:13px;">
-        </div>
-      </div>
+      <p style="font-size:12px;color:var(--text-mute);margin:4px 6px 12px;">Clique em um técnico para ver todos os indicadores e o volume de cada atividade realizada.</p>
       <table class="tech-table" id="gestor-tech-table">
         <thead><tr id="gestor-tech-thead-row"></tr></thead>
         <tbody id="gestor-tech-tbody"></tbody>
@@ -591,13 +554,9 @@ async function listAuthSlugs(){
   return snap.docs.map(d => d.id);
 }
 /* ================= DATA (embutida no build — atualizar recriando este arquivo) ================= */
-let RAW = {"metas": {"nps": 0.7, "eficiencia": 0.8, "wo_min": 510, "revisita_ativacao": 0.05, "revisita_reparo": 0.1, "produtividade": 3.5}, "tecnicos": [{"gestor": "CRISTIANO", "nome": "CIP _ RAFAEL GIELINSKI", "nps": 0.7, "eficiencia": 0.6962025316455697, "wo_min": 509, "revisita_ativacao": 0.0, "revisita_reparo": 0.02564102564102564, "produtividade": 4.230769230769231, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 6.0, "ativacao_corp": 0.0, "rem_ext": 7.0, "rem_int": 0.0, "reparo": 42.0, "total_geral": 55.0, "mesh": null}, {"gestor": "CRISTIANO", "nome": "CIP _ ADILSON DOS SANTOS MARQUES", "nps": 0.7, "eficiencia": 0.7333333333333333, "wo_min": 497, "revisita_ativacao": 0.041666666666666664, "revisita_reparo": 0.0, "produtividade": 3.5833333333333335, "dias_trab_pct": 0.631578947368421, "dias_trab": 12.0, "cq": 2, "ativacao": 21.0, "ativacao_corp": 2.0, "rem_ext": 1.0, "rem_int": 1.0, "reparo": 18.0, "total_geral": 43.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ ADRIANO JOAO LINO ROCHA", "nps": 0.7, "eficiencia": 0.8194444444444444, "wo_min": 531, "revisita_ativacao": 0.3, "revisita_reparo": 0.05555555555555555, "produtividade": 3.2941176470588234, "dias_trab_pct": 0.8947368421052632, "dias_trab": 17.0, "cq": 0, "ativacao": 16.0, "ativacao_corp": 10.0, "rem_ext": 6.0, "rem_int": 0.0, "reparo": 24.0, "total_geral": 56.0, "mesh": 2.0}, {"gestor": "CRISTIANO", "nome": "CIP _ DEIVIDY FERREIRA DO AMARA", "nps": 0.7, "eficiencia": 0.8461538461538461, "wo_min": 567, "revisita_ativacao": 0.07692307692307693, "revisita_reparo": 0.1111111111111111, "produtividade": 2.9285714285714284, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 7.0, "ativacao_corp": 21.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 11.0, "total_geral": 41.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ DIEGO FELIZARDO DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.8518518518518519, "wo_min": 526, "revisita_ativacao": 0.11538461538461539, "revisita_reparo": 0.06060606060606061, "produtividade": 3.823529411764706, "dias_trab_pct": 0.8947368421052632, "dias_trab": 17.0, "cq": 0, "ativacao": 26.0, "ativacao_corp": 1.0, "rem_ext": 2.0, "rem_int": 1.0, "reparo": 35.0, "total_geral": 65.0, "mesh": 4.0}, {"gestor": "CRISTIANO", "nome": "CIP _ ERICO LEANDRO ROSA", "nps": 0.7, "eficiencia": 0.819672131147541, "wo_min": 532, "revisita_ativacao": 0.45454545454545453, "revisita_reparo": 0.2222222222222222, "produtividade": 3.6923076923076925, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 25.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 22.0, "total_geral": 48.0, "mesh": 2.0}, {"gestor": "CRISTIANO", "nome": "CIP _ JONHATHAN ATTOS DE SOUSA", "nps": 0.7, "eficiencia": 0.8481012658227848, "wo_min": 511, "revisita_ativacao": 0.14285714285714285, "revisita_reparo": 0.0, "produtividade": 4.0, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 8, "ativacao": 22.0, "ativacao_corp": 1.0, "rem_ext": 9.0, "rem_int": 0.0, "reparo": 32.0, "total_geral": 64.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ JOSE CARLOS ZACARIAS", "nps": 0.7, "eficiencia": 0.8082191780821918, "wo_min": 509, "revisita_ativacao": 0.0, "revisita_reparo": 0.1, "produtividade": 3.8666666666666667, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 2, "ativacao": 21.0, "ativacao_corp": 4.0, "rem_ext": 8.0, "rem_int": 1.0, "reparo": 24.0, "total_geral": 58.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ LEONARDO FERNANDES LUCAS", "nps": 0.7, "eficiencia": 0.8571428571428571, "wo_min": 562, "revisita_ativacao": 0.037037037037037035, "revisita_reparo": 0.15789473684210525, "produtividade": 3.4375, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 2, "ativacao": 25.0, "ativacao_corp": 3.0, "rem_ext": 5.0, "rem_int": 0.0, "reparo": 22.0, "total_geral": 55.0, "mesh": 5.0}, {"gestor": "CRISTIANO", "nome": "CIP_ ANDERSON FABIANO DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.9122807017543859, "wo_min": 537, "revisita_ativacao": 0.06896551724137931, "revisita_reparo": 0.0, "produtividade": 3.2666666666666666, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 24.0, "ativacao_corp": 6.0, "rem_ext": 2.0, "rem_int": 1.0, "reparo": 16.0, "total_geral": 49.0, "mesh": 3.0}, {"gestor": "CRISTIANO", "nome": "CIP _ DIEGO FELIPE GOMES", "nps": 0.7, "eficiencia": 0.75, "wo_min": 534, "revisita_ativacao": 0.0, "revisita_reparo": 0.05263157894736842, "produtividade": 3.4, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 2, "ativacao": 26.0, "ativacao_corp": 1.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 21.0, "total_geral": 51.0, "mesh": null}, {"gestor": "CRISTIANO", "nome": "CIP _ LUAN NEVES DOS SANTOS", "nps": 0.7, "eficiencia": 0.8163265306122449, "wo_min": 525, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.0, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 1, "ativacao": 15.0, "ativacao_corp": 1.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 21.0, "total_geral": 39.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ SERGIO PATRICK DOS SANTOS NUNES", "nps": 0.7, "eficiencia": 0.6721311475409836, "wo_min": 544, "revisita_ativacao": 0.1, "revisita_reparo": 0.08, "produtividade": 3.1538461538461537, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 14.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 26.0, "total_geral": 41.0, "mesh": null}, {"gestor": "CRISTIANO", "nome": "CIP _ HEBER DE SOUZA FLÁVIO", "nps": 0.7, "eficiencia": 0.8311688311688312, "wo_min": 501, "revisita_ativacao": 0.1111111111111111, "revisita_reparo": 0.0, "produtividade": 3.875, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 3, "ativacao": 23.0, "ativacao_corp": 1.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 34.0, "total_geral": 62.0, "mesh": null}, {"gestor": "CRISTIANO", "nome": "CIP _ ALISSOM DA SILVA", "nps": 0.7, "eficiencia": 0.8194444444444444, "wo_min": 562, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 31.0, "ativacao_corp": 0.0, "rem_ext": 10.0, "rem_int": 0.0, "reparo": 17.0, "total_geral": 58.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ CRISTIANO RODRIGUES DE SOUSA", "nps": 0.7, "eficiencia": 0.8840579710144928, "wo_min": 582, "revisita_ativacao": 0.045454545454545456, "revisita_reparo": 0.07692307692307693, "produtividade": 3.4705882352941178, "dias_trab_pct": 0.8947368421052632, "dias_trab": 17.0, "cq": 0, "ativacao": 17.0, "ativacao_corp": 8.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 31.0, "total_geral": 59.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ LUCIANO ANDRÉ DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.8275862068965517, "wo_min": 551, "revisita_ativacao": 0.11538461538461539, "revisita_reparo": 0.07692307692307693, "produtividade": 3.357142857142857, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 2, "ativacao": 14.0, "ativacao_corp": 13.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 16.0, "total_geral": 47.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ LUCAS MARINHAK", "nps": 0.7, "eficiencia": 0.7205882352941176, "wo_min": 518, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.2857142857142856, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 19.0, "ativacao_corp": 1.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 25.0, "total_geral": 46.0, "mesh": 2.0}, {"gestor": "CRISTIANO", "nome": "CIP _ EDUARDO DE LIMA RIBEIRO ALEGRO", "nps": 0.7, "eficiencia": 0.8311688311688312, "wo_min": 556, "revisita_ativacao": 0.05714285714285714, "revisita_reparo": 0.0, "produtividade": 3.764705882352941, "dias_trab_pct": 0.8947368421052632, "dias_trab": 17.0, "cq": 0, "ativacao": 25.0, "ativacao_corp": 16.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 21.0, "total_geral": 64.0, "mesh": null}, {"gestor": "ISRAEL", "nome": "CIP _ ADRIANO CRUZ", "nps": 0.7, "eficiencia": 0.6888888888888889, "wo_min": 484, "revisita_ativacao": 0.0, "revisita_reparo": 0.03225806451612903, "produtividade": 3.6875, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 19.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 37.0, "total_geral": 59.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ GILSON RISKE", "nps": 0.7, "eficiencia": 0.8421052631578947, "wo_min": 541, "revisita_ativacao": 0.0, "revisita_reparo": 0.1111111111111111, "produtividade": 3.0, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 17.0, "ativacao_corp": 19.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 9.0, "total_geral": 48.0, "mesh": null}, {"gestor": "ISRAEL", "nome": "CIP _ JHONATAN WILLIAN PORTO KOCHOLIK", "nps": 0.7, "eficiencia": 0.7413793103448276, "wo_min": 567, "revisita_ativacao": 0.0, "revisita_reparo": 0.08695652173913043, "produtividade": 2.8666666666666667, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 16.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 1.0, "reparo": 24.0, "total_geral": 43.0, "mesh": null}, {"gestor": "ISRAEL", "nome": "CIP _ MAURICIO CARLOS LUCAS", "nps": 0.7, "eficiencia": 0.6410256410256411, "wo_min": 515, "revisita_ativacao": 0.0, "revisita_reparo": 0.07692307692307693, "produtividade": 1.9166666666666667, "dias_trab_pct": 0.631578947368421, "dias_trab": 12.0, "cq": 0, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 1.0, "reparo": 13.0, "total_geral": 23.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ CLEITON SAMONEK", "nps": 0.7, "eficiencia": 0.6708860759493671, "wo_min": 510, "revisita_ativacao": 0.1, "revisita_reparo": 0.047619047619047616, "produtividade": 3.466666666666667, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 25.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 24.0, "total_geral": 52.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ WERYCLES GILBERTO DE OLVEIRA PEREI", "nps": 0.7, "eficiencia": 0.6511627906976745, "wo_min": 563, "revisita_ativacao": 0.0, "revisita_reparo": 0.08333333333333333, "produtividade": 2.1666666666666665, "dias_trab_pct": 0.631578947368421, "dias_trab": 12.0, "cq": 0, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 17.0, "total_geral": 26.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ MARCELO PINHEIRO FERREIRA", "nps": 0.7, "eficiencia": 0.6964285714285714, "wo_min": 521, "revisita_ativacao": 0.0, "revisita_reparo": 0.0625, "produtividade": 2.923076923076923, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 15.0, "ativacao_corp": 1.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 18.0, "total_geral": 38.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ CARLOS DANILO DE SOUSA", "nps": 0.7, "eficiencia": 0.7258064516129032, "wo_min": 536, "revisita_ativacao": 0.047619047619047616, "revisita_reparo": 0.058823529411764705, "produtividade": 2.5625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 4, "ativacao": 20.0, "ativacao_corp": 2.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 15.0, "total_geral": 41.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ GILBERTO DE OLIVEIRA MIRANDA", "nps": 0.7, "eficiencia": 0.76, "wo_min": 557, "revisita_ativacao": 0.09090909090909091, "revisita_reparo": 0.03225806451612903, "produtividade": 3.6, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 15.0, "ativacao_corp": 1.0, "rem_ext": 3.0, "rem_int": 1.0, "reparo": 34.0, "total_geral": 54.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ KENNEDY BISPO TOFOLO", "nps": 0.7, "eficiencia": 0.6506024096385542, "wo_min": 517, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.1875, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 15.0, "ativacao_corp": 4.0, "rem_ext": 5.0, "rem_int": 1.0, "reparo": 26.0, "total_geral": 51.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ RICARDO JOSÉ GONZÁLEZ QUINTERO", "nps": 0.7, "eficiencia": 0.8636363636363636, "wo_min": 527, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.1666666666666665, "dias_trab_pct": 0.631578947368421, "dias_trab": 12.0, "cq": 0, "ativacao": 15.0, "ativacao_corp": 4.0, "rem_ext": 1.0, "rem_int": 1.0, "reparo": 17.0, "total_geral": 38.0, "mesh": null}, {"gestor": "ISRAEL", "nome": "CIP _ ELIAS HENRIQUE DO CARMO ANDRADE", "nps": 0.7, "eficiencia": 0.7125, "wo_min": 531, "revisita_ativacao": 0.0, "revisita_reparo": 0.041666666666666664, "produtividade": 3.6666666666666665, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 25.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 27.0, "total_geral": 55.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ TIAGO SUREK", "nps": 0.7, "eficiencia": 0.8412698412698413, "wo_min": 530, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.3333333333333335, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 19.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 1.0, "reparo": 26.0, "total_geral": 50.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ BRUNO ANTONIO DOS SANTOS WISNIESKI", "nps": 0.7, "eficiencia": 0.7164179104477612, "wo_min": 517, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.4285714285714284, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 2, "ativacao": 18.0, "ativacao_corp": 2.0, "rem_ext": 5.0, "rem_int": 0.0, "reparo": 23.0, "total_geral": 48.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ ADEMIR DE MELO CEZAR", "nps": 0.7, "eficiencia": 0.8333333333333334, "wo_min": 783, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 1.25, "dias_trab_pct": 0.21052631578947367, "dias_trab": 4.0, "cq": 0, "ativacao": 4.0, "ativacao_corp": 0.0, "rem_ext": 0.0, "rem_int": 0.0, "reparo": 1.0, "total_geral": 5.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ ANTONIO CARLOS GONÇALVES", "nps": 0.7, "eficiencia": 0.9393939393939394, "wo_min": 580, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.142857142857143, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 10.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 18.0, "total_geral": 30.0, "mesh": 1.0}, {"gestor": "KAIO", "nome": "CIP _ APARECIDO DE OLIVEIRA LIMA", "nps": 0.7, "eficiencia": 0.9354838709677419, "wo_min": 560, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.0, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 11.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 15.0, "total_geral": 28.0, "mesh": 1.0}, {"gestor": "KAIO", "nome": "CIP _ CLAUDINEI BATISTA DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.9130434782608695, "wo_min": 552, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.9285714285714284, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 7.0, "ativacao_corp": 0.0, "rem_ext": 5.0, "rem_int": 2.0, "reparo": 27.0, "total_geral": 41.0, "mesh": 1.0}, {"gestor": "KAIO", "nome": "CIP _ DARLAN JOSE AZEVEDO", "nps": 0.7, "eficiencia": 0.9318181818181818, "wo_min": 591, "revisita_ativacao": 0.0, "revisita_reparo": 0.058823529411764705, "produtividade": 2.5625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 1.0, "reparo": 28.0, "total_geral": 41.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ ELCIO DE ANDRADE JUNIOR", "nps": 0.7, "eficiencia": 1.0, "wo_min": 853, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.0, "dias_trab_pct": 0.3157894736842105, "dias_trab": 6.0, "cq": 0, "ativacao": 3.0, "ativacao_corp": 0.0, "rem_ext": 0.0, "rem_int": 0.0, "reparo": 9.0, "total_geral": 12.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ ELISON JOSE DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.9387755102040817, "wo_min": 525, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.875, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 24.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 2.0, "reparo": 16.0, "total_geral": 46.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ JUCIMAR MARTINS DOS SANTOS", "nps": 0.7, "eficiencia": 0.9655172413793104, "wo_min": 621, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 1.75, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 2.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 1.0, "reparo": 23.0, "total_geral": 28.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ KAUA MATEUS BARBOSA", "nps": 0.7, "eficiencia": 0.9, "wo_min": 572, "revisita_ativacao": 0.0, "revisita_reparo": 0.06666666666666667, "produtividade": 3.2142857142857144, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 20.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 24.0, "total_geral": 45.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ MARCELO GONCALVES", "nps": 0.7, "eficiencia": 0.9, "wo_min": 535, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.6, "dias_trab_pct": 0.2631578947368421, "dias_trab": 5.0, "cq": 0, "ativacao": 6.0, "ativacao_corp": 0.0, "rem_ext": 0.0, "rem_int": 0.0, "reparo": 12.0, "total_geral": 18.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ RENAN DE QUADROS FABIAN", "nps": 0.7, "eficiencia": 0.9622641509433962, "wo_min": 528, "revisita_ativacao": 0.2, "revisita_reparo": 0.04, "produtividade": 3.4, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 13.0, "ativacao_corp": 0.0, "rem_ext": 7.0, "rem_int": 0.0, "reparo": 31.0, "total_geral": 51.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ DOMCHARLES QUADROS KLUCH", "nps": 0.7, "eficiencia": null, "wo_min": null, "revisita_ativacao": null, "revisita_reparo": null, "produtividade": null, "dias_trab_pct": null, "dias_trab": null, "cq": 0, "ativacao": null, "ativacao_corp": null, "rem_ext": null, "rem_int": null, "reparo": null, "total_geral": null, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ GABRIEL VINICIUS NEVES", "nps": 0.7, "eficiencia": 0.9310344827586207, "wo_min": 543, "revisita_ativacao": 0.0, "revisita_reparo": 0.04, "produtividade": 3.6, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 14.0, "ativacao_corp": 0.0, "rem_ext": 5.0, "rem_int": 0.0, "reparo": 35.0, "total_geral": 54.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ JOÃO CARLOS DA COSTA", "nps": 0.7, "eficiencia": 0.8767123287671232, "wo_min": 547, "revisita_ativacao": 0.0, "revisita_reparo": 0.12, "produtividade": 3.5555555555555554, "dias_trab_pct": 0.9473684210526315, "dias_trab": 18.0, "cq": 0, "ativacao": 31.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 1.0, "reparo": 29.0, "total_geral": 64.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ José Augusto Rodrigues Junior", "nps": 0.7, "eficiencia": 0.6440677966101694, "wo_min": 520, "revisita_ativacao": 0.0, "revisita_reparo": 0.14285714285714285, "produtividade": 2.923076923076923, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 11.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 1.0, "reparo": 23.0, "total_geral": 38.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ Luiz Guilherme Skroch", "nps": 0.7, "eficiencia": 0.8809523809523809, "wo_min": 549, "revisita_ativacao": 0.0, "revisita_reparo": 0.11538461538461539, "produtividade": 2.8461538461538463, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 0.0, "rem_int": 0.0, "reparo": 29.0, "total_geral": 37.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ WENDY WILIAN GOUVEA MENDES", "nps": 0.7, "eficiencia": 0.6851851851851852, "wo_min": 551, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.3125, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 7.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 29.0, "total_geral": 37.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ PAULO CESAR SANTOS NUNES", "nps": 0.7, "eficiencia": 0.631578947368421, "wo_min": 546, "revisita_ativacao": 0.0, "revisita_reparo": 0.3333333333333333, "produtividade": 3.0, "dias_trab_pct": 0.21052631578947367, "dias_trab": 4.0, "cq": 16, "ativacao": 2.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 9.0, "total_geral": 12.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ DENILSON LEME CORREA", "nps": 0.7, "eficiencia": 0.6491228070175439, "wo_min": 567, "revisita_ativacao": 0.1, "revisita_reparo": 0.1111111111111111, "produtividade": 2.466666666666667, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 13.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 21.0, "total_geral": 37.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ RICARDO DO ROZARIO DA SILVA", "nps": 0.7, "eficiencia": 0.7702702702702703, "wo_min": 494, "revisita_ativacao": 0.2727272727272727, "revisita_reparo": 0.0, "produtividade": 3.6666666666666665, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 11.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 1.0, "reparo": 42.0, "total_geral": 55.0, "mesh": 2.0}, {"gestor": "MARCELO", "nome": "CIP _ TELITON RENAN CARNEIRO GONÇALVES", "nps": 0.7, "eficiencia": 0.7258064516129032, "wo_min": 523, "revisita_ativacao": 0.0, "revisita_reparo": 0.07692307692307693, "produtividade": 2.75, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 10.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 33.0, "total_geral": 44.0, "mesh": 1.0}, {"gestor": "MARCELO", "nome": "CIP _ HYURIT ANDREY MAGALHAES LIMA", "nps": 0.7, "eficiencia": 0.7419354838709677, "wo_min": 537, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.2142857142857144, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 12.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 3.0, "reparo": 26.0, "total_geral": 45.0, "mesh": 1.0}, {"gestor": "JEFFERSON", "nome": "CIP _ Paulo Anizio De Carlos", "nps": 0.7, "eficiencia": 0.675, "wo_min": 505, "revisita_ativacao": 0.0, "revisita_reparo": 0.14285714285714285, "produtividade": 2.7, "dias_trab_pct": 0.5263157894736842, "dias_trab": 10.0, "cq": 2, "ativacao": 7.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 16.0, "total_geral": 27.0, "mesh": null}, {"gestor": "JEFFERSON", "nome": "CIP _ ROGERIO ALVES GARCIA", "nps": 0.7, "eficiencia": 0.7160493827160493, "wo_min": 502, "revisita_ativacao": 0.0, "revisita_reparo": 0.05714285714285714, "produtividade": 3.625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 9, "ativacao": 19.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 36.0, "total_geral": 58.0, "mesh": null}, {"gestor": "JEFFERSON", "nome": "CIP _ GABRIEL HENRIQUE PEREIRA", "nps": 0.7, "eficiencia": 0.717391304347826, "wo_min": 519, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.3846153846153846, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 3, "ativacao": 7.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 20.0, "total_geral": 31.0, "mesh": 2.0}, {"gestor": "JEFFERSON", "nome": "CIP _ RAFAEL LUCIANO LEMOS COPETI", "nps": 0.7, "eficiencia": 0.7101449275362319, "wo_min": 507, "revisita_ativacao": 0.0, "revisita_reparo": 0.06666666666666667, "produtividade": 3.0625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 7, "ativacao": 16.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 31.0, "total_geral": 49.0, "mesh": null}, {"gestor": "JEFFERSON", "nome": "CIP _ NILTON JOSE DA SILVA", "nps": 0.7, "eficiencia": 0.6170212765957447, "wo_min": 519, "revisita_ativacao": 0.25, "revisita_reparo": 0.14285714285714285, "produtividade": 1.9285714285714286, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 7, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 16.0, "total_geral": 27.0, "mesh": null}]};
+const RAW = {"metas": {"nps": 0.7, "eficiencia": 0.8, "wo_min": 510, "revisita_ativacao": 0.05, "revisita_reparo": 0.1, "produtividade": 3.5}, "tecnicos": [{"gestor": "CRISTIANO", "nome": "CIP _ RAFAEL GIELINSKI", "nps": 0.7, "eficiencia": 0.6962025316455697, "wo_min": 509, "revisita_ativacao": 0.0, "revisita_reparo": 0.02564102564102564, "produtividade": 4.230769230769231, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 6.0, "ativacao_corp": 0.0, "rem_ext": 7.0, "rem_int": 0.0, "reparo": 42.0, "total_geral": 55.0, "mesh": null}, {"gestor": "CRISTIANO", "nome": "CIP _ ADILSON DOS SANTOS MARQUES", "nps": 0.7, "eficiencia": 0.7333333333333333, "wo_min": 497, "revisita_ativacao": 0.041666666666666664, "revisita_reparo": 0.0, "produtividade": 3.5833333333333335, "dias_trab_pct": 0.631578947368421, "dias_trab": 12.0, "cq": 2, "ativacao": 21.0, "ativacao_corp": 2.0, "rem_ext": 1.0, "rem_int": 1.0, "reparo": 18.0, "total_geral": 43.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ ADRIANO JOAO LINO ROCHA", "nps": 0.7, "eficiencia": 0.8194444444444444, "wo_min": 531, "revisita_ativacao": 0.3, "revisita_reparo": 0.05555555555555555, "produtividade": 3.2941176470588234, "dias_trab_pct": 0.8947368421052632, "dias_trab": 17.0, "cq": 0, "ativacao": 16.0, "ativacao_corp": 10.0, "rem_ext": 6.0, "rem_int": 0.0, "reparo": 24.0, "total_geral": 56.0, "mesh": 2.0}, {"gestor": "CRISTIANO", "nome": "CIP _ DEIVIDY FERREIRA DO AMARA", "nps": 0.7, "eficiencia": 0.8461538461538461, "wo_min": 567, "revisita_ativacao": 0.07692307692307693, "revisita_reparo": 0.1111111111111111, "produtividade": 2.9285714285714284, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 7.0, "ativacao_corp": 21.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 11.0, "total_geral": 41.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ DIEGO FELIZARDO DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.8518518518518519, "wo_min": 526, "revisita_ativacao": 0.11538461538461539, "revisita_reparo": 0.06060606060606061, "produtividade": 3.823529411764706, "dias_trab_pct": 0.8947368421052632, "dias_trab": 17.0, "cq": 0, "ativacao": 26.0, "ativacao_corp": 1.0, "rem_ext": 2.0, "rem_int": 1.0, "reparo": 35.0, "total_geral": 65.0, "mesh": 4.0}, {"gestor": "CRISTIANO", "nome": "CIP _ ERICO LEANDRO ROSA", "nps": 0.7, "eficiencia": 0.819672131147541, "wo_min": 532, "revisita_ativacao": 0.45454545454545453, "revisita_reparo": 0.2222222222222222, "produtividade": 3.6923076923076925, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 25.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 22.0, "total_geral": 48.0, "mesh": 2.0}, {"gestor": "CRISTIANO", "nome": "CIP _ JONHATHAN ATTOS DE SOUSA", "nps": 0.7, "eficiencia": 0.8481012658227848, "wo_min": 511, "revisita_ativacao": 0.14285714285714285, "revisita_reparo": 0.0, "produtividade": 4.0, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 8, "ativacao": 22.0, "ativacao_corp": 1.0, "rem_ext": 9.0, "rem_int": 0.0, "reparo": 32.0, "total_geral": 64.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ JOSE CARLOS ZACARIAS", "nps": 0.7, "eficiencia": 0.8082191780821918, "wo_min": 509, "revisita_ativacao": 0.0, "revisita_reparo": 0.1, "produtividade": 3.8666666666666667, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 2, "ativacao": 21.0, "ativacao_corp": 4.0, "rem_ext": 8.0, "rem_int": 1.0, "reparo": 24.0, "total_geral": 58.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ LEONARDO FERNANDES LUCAS", "nps": 0.7, "eficiencia": 0.8571428571428571, "wo_min": 562, "revisita_ativacao": 0.037037037037037035, "revisita_reparo": 0.15789473684210525, "produtividade": 3.4375, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 2, "ativacao": 25.0, "ativacao_corp": 3.0, "rem_ext": 5.0, "rem_int": 0.0, "reparo": 22.0, "total_geral": 55.0, "mesh": 5.0}, {"gestor": "CRISTIANO", "nome": "CIP_ ANDERSON FABIANO DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.9122807017543859, "wo_min": 537, "revisita_ativacao": 0.06896551724137931, "revisita_reparo": 0.0, "produtividade": 3.2666666666666666, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 24.0, "ativacao_corp": 6.0, "rem_ext": 2.0, "rem_int": 1.0, "reparo": 16.0, "total_geral": 49.0, "mesh": 3.0}, {"gestor": "CRISTIANO", "nome": "CIP _ DIEGO FELIPE GOMES", "nps": 0.7, "eficiencia": 0.75, "wo_min": 534, "revisita_ativacao": 0.0, "revisita_reparo": 0.05263157894736842, "produtividade": 3.4, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 2, "ativacao": 26.0, "ativacao_corp": 1.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 21.0, "total_geral": 51.0, "mesh": null}, {"gestor": "CRISTIANO", "nome": "CIP _ LUAN NEVES DOS SANTOS", "nps": 0.7, "eficiencia": 0.8163265306122449, "wo_min": 525, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.0, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 1, "ativacao": 15.0, "ativacao_corp": 1.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 21.0, "total_geral": 39.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ SERGIO PATRICK DOS SANTOS NUNES", "nps": 0.7, "eficiencia": 0.6721311475409836, "wo_min": 544, "revisita_ativacao": 0.1, "revisita_reparo": 0.08, "produtividade": 3.1538461538461537, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 14.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 26.0, "total_geral": 41.0, "mesh": null}, {"gestor": "CRISTIANO", "nome": "CIP _ HEBER DE SOUZA FLÁVIO", "nps": 0.7, "eficiencia": 0.8311688311688312, "wo_min": 501, "revisita_ativacao": 0.1111111111111111, "revisita_reparo": 0.0, "produtividade": 3.875, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 3, "ativacao": 23.0, "ativacao_corp": 1.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 34.0, "total_geral": 62.0, "mesh": null}, {"gestor": "CRISTIANO", "nome": "CIP _ ALISSOM DA SILVA", "nps": 0.7, "eficiencia": 0.8194444444444444, "wo_min": 562, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 31.0, "ativacao_corp": 0.0, "rem_ext": 10.0, "rem_int": 0.0, "reparo": 17.0, "total_geral": 58.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ CRISTIANO RODRIGUES DE SOUSA", "nps": 0.7, "eficiencia": 0.8840579710144928, "wo_min": 582, "revisita_ativacao": 0.045454545454545456, "revisita_reparo": 0.07692307692307693, "produtividade": 3.4705882352941178, "dias_trab_pct": 0.8947368421052632, "dias_trab": 17.0, "cq": 0, "ativacao": 17.0, "ativacao_corp": 8.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 31.0, "total_geral": 59.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ LUCIANO ANDRÉ DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.8275862068965517, "wo_min": 551, "revisita_ativacao": 0.11538461538461539, "revisita_reparo": 0.07692307692307693, "produtividade": 3.357142857142857, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 2, "ativacao": 14.0, "ativacao_corp": 13.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 16.0, "total_geral": 47.0, "mesh": 1.0}, {"gestor": "CRISTIANO", "nome": "CIP _ LUCAS MARINHAK", "nps": 0.7, "eficiencia": 0.7205882352941176, "wo_min": 518, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.2857142857142856, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 19.0, "ativacao_corp": 1.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 25.0, "total_geral": 46.0, "mesh": 2.0}, {"gestor": "CRISTIANO", "nome": "CIP _ EDUARDO DE LIMA RIBEIRO ALEGRO", "nps": 0.7, "eficiencia": 0.8311688311688312, "wo_min": 556, "revisita_ativacao": 0.05714285714285714, "revisita_reparo": 0.0, "produtividade": 3.764705882352941, "dias_trab_pct": 0.8947368421052632, "dias_trab": 17.0, "cq": 0, "ativacao": 25.0, "ativacao_corp": 16.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 21.0, "total_geral": 64.0, "mesh": null}, {"gestor": "ISRAEL", "nome": "CIP _ ADRIANO CRUZ", "nps": 0.7, "eficiencia": 0.6888888888888889, "wo_min": 484, "revisita_ativacao": 0.0, "revisita_reparo": 0.03225806451612903, "produtividade": 3.6875, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 19.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 37.0, "total_geral": 59.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ GILSON RISKE", "nps": 0.7, "eficiencia": 0.8421052631578947, "wo_min": 541, "revisita_ativacao": 0.0, "revisita_reparo": 0.1111111111111111, "produtividade": 3.0, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 17.0, "ativacao_corp": 19.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 9.0, "total_geral": 48.0, "mesh": null}, {"gestor": "ISRAEL", "nome": "CIP _ JHONATAN WILLIAN PORTO KOCHOLIK", "nps": 0.7, "eficiencia": 0.7413793103448276, "wo_min": 567, "revisita_ativacao": 0.0, "revisita_reparo": 0.08695652173913043, "produtividade": 2.8666666666666667, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 16.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 1.0, "reparo": 24.0, "total_geral": 43.0, "mesh": null}, {"gestor": "ISRAEL", "nome": "CIP _ MAURICIO CARLOS LUCAS", "nps": 0.7, "eficiencia": 0.6410256410256411, "wo_min": 515, "revisita_ativacao": 0.0, "revisita_reparo": 0.07692307692307693, "produtividade": 1.9166666666666667, "dias_trab_pct": 0.631578947368421, "dias_trab": 12.0, "cq": 0, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 1.0, "reparo": 13.0, "total_geral": 23.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ CLEITON SAMONEK", "nps": 0.7, "eficiencia": 0.6708860759493671, "wo_min": 510, "revisita_ativacao": 0.1, "revisita_reparo": 0.047619047619047616, "produtividade": 3.466666666666667, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 25.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 24.0, "total_geral": 52.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ WERYCLES GILBERTO DE OLVEIRA PEREI", "nps": 0.7, "eficiencia": 0.6511627906976745, "wo_min": 563, "revisita_ativacao": 0.0, "revisita_reparo": 0.08333333333333333, "produtividade": 2.1666666666666665, "dias_trab_pct": 0.631578947368421, "dias_trab": 12.0, "cq": 0, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 17.0, "total_geral": 26.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ MARCELO PINHEIRO FERREIRA", "nps": 0.7, "eficiencia": 0.6964285714285714, "wo_min": 521, "revisita_ativacao": 0.0, "revisita_reparo": 0.0625, "produtividade": 2.923076923076923, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 15.0, "ativacao_corp": 1.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 18.0, "total_geral": 38.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ CARLOS DANILO DE SOUSA", "nps": 0.7, "eficiencia": 0.7258064516129032, "wo_min": 536, "revisita_ativacao": 0.047619047619047616, "revisita_reparo": 0.058823529411764705, "produtividade": 2.5625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 4, "ativacao": 20.0, "ativacao_corp": 2.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 15.0, "total_geral": 41.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ GILBERTO DE OLIVEIRA MIRANDA", "nps": 0.7, "eficiencia": 0.76, "wo_min": 557, "revisita_ativacao": 0.09090909090909091, "revisita_reparo": 0.03225806451612903, "produtividade": 3.6, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 15.0, "ativacao_corp": 1.0, "rem_ext": 3.0, "rem_int": 1.0, "reparo": 34.0, "total_geral": 54.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ KENNEDY BISPO TOFOLO", "nps": 0.7, "eficiencia": 0.6506024096385542, "wo_min": 517, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.1875, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 15.0, "ativacao_corp": 4.0, "rem_ext": 5.0, "rem_int": 1.0, "reparo": 26.0, "total_geral": 51.0, "mesh": 1.0}, {"gestor": "ISRAEL", "nome": "CIP _ RICARDO JOSÉ GONZÁLEZ QUINTERO", "nps": 0.7, "eficiencia": 0.8636363636363636, "wo_min": 527, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.1666666666666665, "dias_trab_pct": 0.631578947368421, "dias_trab": 12.0, "cq": 0, "ativacao": 15.0, "ativacao_corp": 4.0, "rem_ext": 1.0, "rem_int": 1.0, "reparo": 17.0, "total_geral": 38.0, "mesh": null}, {"gestor": "ISRAEL", "nome": "CIP _ ELIAS HENRIQUE DO CARMO ANDRADE", "nps": 0.7, "eficiencia": 0.7125, "wo_min": 531, "revisita_ativacao": 0.0, "revisita_reparo": 0.041666666666666664, "produtividade": 3.6666666666666665, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 25.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 27.0, "total_geral": 55.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ TIAGO SUREK", "nps": 0.7, "eficiencia": 0.8412698412698413, "wo_min": 530, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.3333333333333335, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 19.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 1.0, "reparo": 26.0, "total_geral": 50.0, "mesh": 2.0}, {"gestor": "ISRAEL", "nome": "CIP _ BRUNO ANTONIO DOS SANTOS WISNIESKI", "nps": 0.7, "eficiencia": 0.7164179104477612, "wo_min": 517, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.4285714285714284, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 2, "ativacao": 18.0, "ativacao_corp": 2.0, "rem_ext": 5.0, "rem_int": 0.0, "reparo": 23.0, "total_geral": 48.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ ADEMIR DE MELO CEZAR", "nps": 0.7, "eficiencia": 0.8333333333333334, "wo_min": 783, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 1.25, "dias_trab_pct": 0.21052631578947367, "dias_trab": 4.0, "cq": 0, "ativacao": 4.0, "ativacao_corp": 0.0, "rem_ext": 0.0, "rem_int": 0.0, "reparo": 1.0, "total_geral": 5.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ ANTONIO CARLOS GONÇALVES", "nps": 0.7, "eficiencia": 0.9393939393939394, "wo_min": 580, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.142857142857143, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 10.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 18.0, "total_geral": 30.0, "mesh": 1.0}, {"gestor": "KAIO", "nome": "CIP _ APARECIDO DE OLIVEIRA LIMA", "nps": 0.7, "eficiencia": 0.9354838709677419, "wo_min": 560, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.0, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 11.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 15.0, "total_geral": 28.0, "mesh": 1.0}, {"gestor": "KAIO", "nome": "CIP _ CLAUDINEI BATISTA DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.9130434782608695, "wo_min": 552, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.9285714285714284, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 7.0, "ativacao_corp": 0.0, "rem_ext": 5.0, "rem_int": 2.0, "reparo": 27.0, "total_geral": 41.0, "mesh": 1.0}, {"gestor": "KAIO", "nome": "CIP _ DARLAN JOSE AZEVEDO", "nps": 0.7, "eficiencia": 0.9318181818181818, "wo_min": 591, "revisita_ativacao": 0.0, "revisita_reparo": 0.058823529411764705, "produtividade": 2.5625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 1.0, "reparo": 28.0, "total_geral": 41.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ ELCIO DE ANDRADE JUNIOR", "nps": 0.7, "eficiencia": 1.0, "wo_min": 853, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.0, "dias_trab_pct": 0.3157894736842105, "dias_trab": 6.0, "cq": 0, "ativacao": 3.0, "ativacao_corp": 0.0, "rem_ext": 0.0, "rem_int": 0.0, "reparo": 9.0, "total_geral": 12.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ ELISON JOSE DE OLIVEIRA", "nps": 0.7, "eficiencia": 0.9387755102040817, "wo_min": 525, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.875, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 24.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 2.0, "reparo": 16.0, "total_geral": 46.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ JUCIMAR MARTINS DOS SANTOS", "nps": 0.7, "eficiencia": 0.9655172413793104, "wo_min": 621, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 1.75, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 2.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 1.0, "reparo": 23.0, "total_geral": 28.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ KAUA MATEUS BARBOSA", "nps": 0.7, "eficiencia": 0.9, "wo_min": 572, "revisita_ativacao": 0.0, "revisita_reparo": 0.06666666666666667, "produtividade": 3.2142857142857144, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 20.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 24.0, "total_geral": 45.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ MARCELO GONCALVES", "nps": 0.7, "eficiencia": 0.9, "wo_min": 535, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.6, "dias_trab_pct": 0.2631578947368421, "dias_trab": 5.0, "cq": 0, "ativacao": 6.0, "ativacao_corp": 0.0, "rem_ext": 0.0, "rem_int": 0.0, "reparo": 12.0, "total_geral": 18.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ RENAN DE QUADROS FABIAN", "nps": 0.7, "eficiencia": 0.9622641509433962, "wo_min": 528, "revisita_ativacao": 0.2, "revisita_reparo": 0.04, "produtividade": 3.4, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 13.0, "ativacao_corp": 0.0, "rem_ext": 7.0, "rem_int": 0.0, "reparo": 31.0, "total_geral": 51.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ DOMCHARLES QUADROS KLUCH", "nps": 0.7, "eficiencia": null, "wo_min": null, "revisita_ativacao": null, "revisita_reparo": null, "produtividade": null, "dias_trab_pct": null, "dias_trab": null, "cq": 0, "ativacao": null, "ativacao_corp": null, "rem_ext": null, "rem_int": null, "reparo": null, "total_geral": null, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ GABRIEL VINICIUS NEVES", "nps": 0.7, "eficiencia": 0.9310344827586207, "wo_min": 543, "revisita_ativacao": 0.0, "revisita_reparo": 0.04, "produtividade": 3.6, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 14.0, "ativacao_corp": 0.0, "rem_ext": 5.0, "rem_int": 0.0, "reparo": 35.0, "total_geral": 54.0, "mesh": null}, {"gestor": "KAIO", "nome": "CIP _ JOÃO CARLOS DA COSTA", "nps": 0.7, "eficiencia": 0.8767123287671232, "wo_min": 547, "revisita_ativacao": 0.0, "revisita_reparo": 0.12, "produtividade": 3.5555555555555554, "dias_trab_pct": 0.9473684210526315, "dias_trab": 18.0, "cq": 0, "ativacao": 31.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 1.0, "reparo": 29.0, "total_geral": 64.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ José Augusto Rodrigues Junior", "nps": 0.7, "eficiencia": 0.6440677966101694, "wo_min": 520, "revisita_ativacao": 0.0, "revisita_reparo": 0.14285714285714285, "produtividade": 2.923076923076923, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 11.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 1.0, "reparo": 23.0, "total_geral": 38.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ Luiz Guilherme Skroch", "nps": 0.7, "eficiencia": 0.8809523809523809, "wo_min": 549, "revisita_ativacao": 0.0, "revisita_reparo": 0.11538461538461539, "produtividade": 2.8461538461538463, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 0, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 0.0, "rem_int": 0.0, "reparo": 29.0, "total_geral": 37.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ WENDY WILIAN GOUVEA MENDES", "nps": 0.7, "eficiencia": 0.6851851851851852, "wo_min": 551, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.3125, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 7.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 29.0, "total_geral": 37.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ PAULO CESAR SANTOS NUNES", "nps": 0.7, "eficiencia": 0.631578947368421, "wo_min": 546, "revisita_ativacao": 0.0, "revisita_reparo": 0.3333333333333333, "produtividade": 3.0, "dias_trab_pct": 0.21052631578947367, "dias_trab": 4.0, "cq": 16, "ativacao": 2.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 9.0, "total_geral": 12.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ DENILSON LEME CORREA", "nps": 0.7, "eficiencia": 0.6491228070175439, "wo_min": 567, "revisita_ativacao": 0.1, "revisita_reparo": 0.1111111111111111, "produtividade": 2.466666666666667, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 13.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 21.0, "total_geral": 37.0, "mesh": null}, {"gestor": "MARCELO", "nome": "CIP _ RICARDO DO ROZARIO DA SILVA", "nps": 0.7, "eficiencia": 0.7702702702702703, "wo_min": 494, "revisita_ativacao": 0.2727272727272727, "revisita_reparo": 0.0, "produtividade": 3.6666666666666665, "dias_trab_pct": 0.7894736842105263, "dias_trab": 15.0, "cq": 0, "ativacao": 11.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 1.0, "reparo": 42.0, "total_geral": 55.0, "mesh": 2.0}, {"gestor": "MARCELO", "nome": "CIP _ TELITON RENAN CARNEIRO GONÇALVES", "nps": 0.7, "eficiencia": 0.7258064516129032, "wo_min": 523, "revisita_ativacao": 0.0, "revisita_reparo": 0.07692307692307693, "produtividade": 2.75, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 0, "ativacao": 10.0, "ativacao_corp": 0.0, "rem_ext": 1.0, "rem_int": 0.0, "reparo": 33.0, "total_geral": 44.0, "mesh": 1.0}, {"gestor": "MARCELO", "nome": "CIP _ HYURIT ANDREY MAGALHAES LIMA", "nps": 0.7, "eficiencia": 0.7419354838709677, "wo_min": 537, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 3.2142857142857144, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 0, "ativacao": 12.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 3.0, "reparo": 26.0, "total_geral": 45.0, "mesh": 1.0}, {"gestor": "JEFFERSON", "nome": "CIP _ Paulo Anizio De Carlos", "nps": 0.7, "eficiencia": 0.675, "wo_min": 505, "revisita_ativacao": 0.0, "revisita_reparo": 0.14285714285714285, "produtividade": 2.7, "dias_trab_pct": 0.5263157894736842, "dias_trab": 10.0, "cq": 2, "ativacao": 7.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 16.0, "total_geral": 27.0, "mesh": null}, {"gestor": "JEFFERSON", "nome": "CIP _ ROGERIO ALVES GARCIA", "nps": 0.7, "eficiencia": 0.7160493827160493, "wo_min": 502, "revisita_ativacao": 0.0, "revisita_reparo": 0.05714285714285714, "produtividade": 3.625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 9, "ativacao": 19.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 36.0, "total_geral": 58.0, "mesh": null}, {"gestor": "JEFFERSON", "nome": "CIP _ GABRIEL HENRIQUE PEREIRA", "nps": 0.7, "eficiencia": 0.717391304347826, "wo_min": 519, "revisita_ativacao": 0.0, "revisita_reparo": 0.0, "produtividade": 2.3846153846153846, "dias_trab_pct": 0.6842105263157895, "dias_trab": 13.0, "cq": 3, "ativacao": 7.0, "ativacao_corp": 0.0, "rem_ext": 4.0, "rem_int": 0.0, "reparo": 20.0, "total_geral": 31.0, "mesh": 2.0}, {"gestor": "JEFFERSON", "nome": "CIP _ RAFAEL LUCIANO LEMOS COPETI", "nps": 0.7, "eficiencia": 0.7101449275362319, "wo_min": 507, "revisita_ativacao": 0.0, "revisita_reparo": 0.06666666666666667, "produtividade": 3.0625, "dias_trab_pct": 0.8421052631578947, "dias_trab": 16.0, "cq": 7, "ativacao": 16.0, "ativacao_corp": 0.0, "rem_ext": 2.0, "rem_int": 0.0, "reparo": 31.0, "total_geral": 49.0, "mesh": null}, {"gestor": "JEFFERSON", "nome": "CIP _ NILTON JOSE DA SILVA", "nps": 0.7, "eficiencia": 0.6170212765957447, "wo_min": 519, "revisita_ativacao": 0.25, "revisita_reparo": 0.14285714285714285, "produtividade": 1.9285714285714286, "dias_trab_pct": 0.7368421052631579, "dias_trab": 14.0, "cq": 7, "ativacao": 8.0, "ativacao_corp": 0.0, "rem_ext": 3.0, "rem_int": 0.0, "reparo": 16.0, "total_geral": 27.0, "mesh": null}]};
 const METAS = RAW.metas;
-let TECS = RAW.tecnicos;
-let gestores = {};
-let companyAvgComposite = null;
-let GESTOR_LIST = [];
-let GHEX = {};
+const TECS = RAW.tecnicos;
 
 const GHEX_LIST = ["#26d9c9","#9089f2","#f2a93b","#4fa8f5","#f0576b","#5fd15e","#e879c0","#63b3ed"];
 const gestorColor = {};
@@ -644,158 +603,16 @@ function fmtTime(min){ if(min===null||min===undefined) return '—'; const h=Mat
 function fmtScore(v){ return (v===null||v===undefined) ? '—' : Math.round(v); }
 function avg(arr){ const vals = arr.filter(v=>v!==null && v!==undefined && !isNaN(v)); if(vals.length===0) return null; return vals.reduce((a,b)=>a+b,0)/vals.length; }
 
-function applyTecnicosData(tecnicosArray){
-  TECS = tecnicosArray;
-  TECS.forEach(t=>{
-    t.display = prettyName(t.nome);
-    t.composite = computeComposite(t);
-    t.slug = slugify(t.nome);
-  });
-  gestores = {};
-  TECS.forEach(t=>{ (gestores[t.gestor] ||= []).push(t); });
-  companyAvgComposite = avg(TECS.map(t=>t.composite));
-  GESTOR_LIST = Object.keys(gestores).sort();
-  GHEX = {};
-  Object.keys(gestores).forEach(g=>{ GHEX[g] = colorFor(g); });
-}
+TECS.forEach(t=>{
+  t.display = prettyName(t.nome);
+  t.composite = computeComposite(t);
+  t.slug = slugify(t.nome);
+});
 
-/* ---- Leitura ao vivo dos dados publicados no Google Sheets (com fallback silencioso) ---- */
-const LIVE_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR4mE54QysVssxQ-krzAPVA9fCCmPs4QigvpxAwS6P5bl3oDuKnUdZRBu0vQ-ypcCCJ2EHk-iNd303j/pub?gid=0&single=true&output=csv";
+const gestores = {};
+TECS.forEach(t=>{ (gestores[t.gestor] ||= []).push(t); });
 
-function parseCSV(text){
-  const rows = [];
-  let row = [], field = '', inQuotes = false;
-  for(let i=0;i<text.length;i++){
-    const c = text[i];
-    if(inQuotes){
-      if(c === '"'){
-        if(text[i+1] === '"'){ field+='"'; i++; }
-        else { inQuotes = false; }
-      } else field += c;
-    } else {
-      if(c === '"'){ inQuotes = true; }
-      else if(c === ','){ row.push(field); field=''; }
-      else if(c === '\r'){ /* skip */ }
-      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
-      else field += c;
-    }
-  }
-  if(field.length>0 || row.length>0){ row.push(field); rows.push(row); }
-  return rows.filter(r => r.length > 1 || (r.length===1 && r[0].trim()!==''));
-}
-
-function parsePercentCell(s){
-  if(s===undefined) return null;
-  s = String(s).trim();
-  if(s==='') return null;
-  s = s.replace('%','').replace(',', '.');
-  const v = parseFloat(s);
-  return isNaN(v) ? null : v/100;
-}
-function parseDecimalCell(s){
-  if(s===undefined) return null;
-  s = String(s).trim();
-  if(s==='') return null;
-  s = s.replace(',', '.');
-  const v = parseFloat(s);
-  return isNaN(v) ? null : v;
-}
-function parseIntCell(s){
-  if(s===undefined) return null;
-  s = String(s).trim();
-  if(s==='') return null;
-  const v = parseFloat(s.replace(',', '.'));
-  return isNaN(v) ? null : Math.round(v);
-}
-function parseTimeCell(s){
-  if(s===undefined) return null;
-  s = String(s).trim();
-  const m = s.match(/^(\d{1,2}):(\d{2})/);
-  if(!m) return null;
-  return parseInt(m[1],10)*60 + parseInt(m[2],10);
-}
-
-function buildHeaderIndex(headerRow){
-  const idx = {};
-  headerRow.forEach((raw,i)=>{
-    const h = String(raw).trim();
-    const H = h.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
-    if(idx.gestor===undefined && H==='LIDER') idx.gestor=i;
-    else if(idx.nome===undefined && H==='TECNICO') idx.nome=i;
-    else if(idx.nps===undefined && H==='NPS') idx.nps=i;
-    else if(idx.eficiencia===undefined && H.startsWith('EFICIENC')) idx.eficiencia=i;
-    else if(idx.revisita_ativacao===undefined && H.includes('REVISITA') && H.includes('ATIV')) idx.revisita_ativacao=i;
-    else if(idx.revisita_reparo===undefined && H.includes('REVISITA') && H.includes('REPARO')) idx.revisita_reparo=i;
-    else if(idx.wo_min===undefined && (H.includes('W.O') || H.includes('WO'))) idx.wo_min=i;
-    else if(idx.produtividade===undefined && H.startsWith('PRODUTIV')) idx.produtividade=i;
-    else if(idx.dias_trab_pct===undefined && H==='DIAS TRAB.') idx.dias_trab_pct=i;
-    else if(idx.dias_trab===undefined && H==='DIAS TRAB') idx.dias_trab=i;
-    else if(idx.cq===undefined && H==='CQ') idx.cq=i;
-    else if(idx.ativacao_corp===undefined && H.includes('ATIVA') && H.includes('CORPORATIV')) idx.ativacao_corp=i;
-    else if(idx.ativacao===undefined && H.includes('ATIVA') && !H.includes('CORPORATIV') && !H.includes('REVISITA')) idx.ativacao=i;
-    else if(idx.rem_ext===undefined && H.includes('REMANEJ') && H.includes('EXTERN')) idx.rem_ext=i;
-    else if(idx.rem_int===undefined && H.includes('REMANEJ') && H.includes('INTERN')) idx.rem_int=i;
-    else if(idx.reparo===undefined && H.includes('REPARO') && !H.includes('REVISITA')) idx.reparo=i;
-    else if(idx.total_geral===undefined && H.includes('TOTAL') && H.includes('GERAL')) idx.total_geral=i;
-    else if(idx.mesh===undefined && H.includes('MESH')) idx.mesh=i;
-  });
-  return idx;
-}
-
-function csvRowsToTecnicos(rows){
-  if(rows.length < 2) return null;
-  const idx = buildHeaderIndex(rows[0]);
-  if(idx.gestor===undefined || idx.nome===undefined) return null;
-  const out = [];
-  for(let r=1;r<rows.length;r++){
-    const row = rows[r];
-    if(!row || row.length===0) continue;
-    const nomeCell = idx.nome!==undefined ? row[idx.nome] : undefined;
-    if(!nomeCell || !String(nomeCell).trim()) continue;
-    out.push({
-      gestor: idx.gestor!==undefined ? String(row[idx.gestor]||'').trim() : null,
-      nome: String(nomeCell).trim(),
-      nps: parsePercentCell(row[idx.nps]),
-      eficiencia: parsePercentCell(row[idx.eficiencia]),
-      wo_min: parseTimeCell(row[idx.wo_min]),
-      revisita_ativacao: parsePercentCell(row[idx.revisita_ativacao]),
-      revisita_reparo: parsePercentCell(row[idx.revisita_reparo]),
-      produtividade: parseDecimalCell(row[idx.produtividade]),
-      dias_trab_pct: parsePercentCell(row[idx.dias_trab_pct]),
-      dias_trab: parseIntCell(row[idx.dias_trab]),
-      cq: parseIntCell(row[idx.cq]),
-      ativacao: parseIntCell(row[idx.ativacao]),
-      ativacao_corp: parseIntCell(row[idx.ativacao_corp]),
-      rem_ext: parseIntCell(row[idx.rem_ext]),
-      rem_int: parseIntCell(row[idx.rem_int]),
-      reparo: parseIntCell(row[idx.reparo]),
-      total_geral: parseIntCell(row[idx.total_geral]),
-      mesh: parseIntCell(row[idx.mesh]),
-    });
-  }
-  return out.length > 0 ? out : null;
-}
-
-async function tryLoadLiveData(){
-  try{
-    const res = await fetch(LIVE_DATA_URL, {cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const text = await res.text();
-    const rows = parseCSV(text);
-    const tecnicos = csvRowsToTecnicos(rows);
-    if(!tecnicos) throw new Error('CSV vazio ou cabeçalhos não reconhecidos');
-    applyTecnicosData(tecnicos);
-    const banner = document.getElementById('live-data-status');
-    if(banner) banner.textContent = 'Dados ao vivo carregados do Google Sheets.';
-    return true;
-  }catch(e){
-    console.warn('Não foi possível carregar dados ao vivo, usando versão local salva:', e);
-    return false;
-  }
-}
-
-applyTecnicosData(RAW.tecnicos);
-tryLoadLiveData();
+const companyAvgComposite = avg(TECS.map(t=>t.composite));
 
 const IND_DEFS = [
   {key:'nps', label:'NPS', meta:METAS.nps, dir:'higher', fmt:v=>fmtPct(v)},
@@ -828,6 +645,7 @@ let selectedTech = null;
 let hasAccount = null;
 let authTarget = null; // { type:'tecnico'|'gestor', slug, label, gestorName? }
 
+const GESTOR_LIST = Object.keys(gestores).sort();
 function gestorSlug(name){ return 'gestor-' + slugify(name); }
 
 const nameInput = document.getElementById('name-input');
@@ -1048,6 +866,9 @@ document.getElementById('admin-logout-btn').addEventListener('click', ()=>{
 });
 
 /* ================= ADMIN DASHBOARD (visão completa) ================= */
+const GHEX = {};
+Object.keys(gestores).forEach(g=>{ GHEX[g] = colorFor(g); });
+
 function tierHex(tier){
   return tier==='good' ? '#34d399' : tier==='warn' ? '#f2b84b' : tier==='crit' ? '#f0576b' : '#5d6b7a';
 }
@@ -1159,8 +980,6 @@ let adminExpandedTechKey = null;
 let gestorSortState = {key:'composite', dir:'desc'};
 let gestorExpandedTechKey = null;
 let currentGestorScope = null;
-let adminTechSearchTerm = '';
-let gestorTechSearchTerm = '';
 
 function metricScoreFor(key, t){
   if(key==='composite') return t.composite;
@@ -1169,50 +988,16 @@ function metricScoreFor(key, t){
   return def.higherBetter ? scoreHigherBetter(def.get(t), def.meta) : scoreLowerBetter(def.get(t), def.meta);
 }
 function populateMetricSelect(prefix, gestor){
-  const wrap = document.getElementById(prefix+'-metric-select');
-  const entries = Object.entries(METRIC_DEFS);
-  wrap.dataset.value = 'composite';
-  wrap.innerHTML = `
-    <button type="button" class="msel-btn">
-      <span class="msel-label">${METRIC_DEFS['composite'].label}</span>
-      <span class="msel-arrow">▾</span>
-    </button>
-    <div class="msel-panel">
-      ${entries.map(([k,d])=>`<div class="msel-option ${k==='composite'?'selected':''}" data-value="${k}">${d.label}</div>`).join('')}
-    </div>
-  `;
-  const btn = wrap.querySelector('.msel-btn');
-  const panel = wrap.querySelector('.msel-panel');
-  btn.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    document.querySelectorAll('.msel.open').forEach(el=>{ if(el!==wrap) el.classList.remove('open'); });
-    wrap.classList.toggle('open');
-  });
-  panel.querySelectorAll('.msel-option').forEach(opt=>{
-    opt.addEventListener('click', ()=>{
-      const val = opt.dataset.value;
-      wrap.dataset.value = val;
-      wrap.querySelector('.msel-label').textContent = METRIC_DEFS[val].label;
-      panel.querySelectorAll('.msel-option').forEach(o=>o.classList.toggle('selected', o===opt));
-      wrap.classList.remove('open');
-      renderTechChart(prefix, gestor, val);
-    });
-  });
+  const sel = document.getElementById(prefix+'-metric-select');
+  sel.innerHTML = Object.entries(METRIC_DEFS).map(([k,d])=>`<option value="${k}">${d.label}</option>`).join('');
+  sel.value = 'composite';
+  sel.onchange = ()=> renderTechChart(prefix, gestor, sel.value);
 }
-document.addEventListener('click', (e)=>{
-  if(!e.target.closest('.msel')){
-    document.querySelectorAll('.msel.open').forEach(el=>el.classList.remove('open'));
-  }
-});
 
 function openAdminDetail(gestor){
   currentAdminGestor = gestor;
   adminExpandedTechKey = null;
-  adminTechSearchTerm = '';
-  const adminSearchInput = document.getElementById('admin-tech-search');
-  if(adminSearchInput) adminSearchInput.value = '';
   document.getElementById('admin-overview-panel').style.display = 'none';
-  document.getElementById('admin-access-panel').style.display = 'none';
   document.getElementById('admin-detail-panel').style.display = 'block';
   window.scrollTo({top:0, behavior:'smooth'});
   document.getElementById('admin-chip-swatch').style.background = GHEX[gestor];
@@ -1227,7 +1012,6 @@ function openAdminDetail(gestor){
 function closeAdminDetail(){
   document.getElementById('admin-detail-panel').style.display = 'none';
   document.getElementById('admin-overview-panel').style.display = 'block';
-  document.getElementById('admin-access-panel').style.display = 'block';
   window.scrollTo({top:0, behavior:'smooth'});
 }
 document.getElementById('admin-back-btn').addEventListener('click', closeAdminDetail);
@@ -1343,11 +1127,7 @@ function renderGestorTableHead(gestor){
 function renderTechTable(prefix, gestor){
   const isAdmin = prefix === 'admin';
   const sortState = isAdmin ? adminSortState : gestorSortState;
-  const searchTerm = (isAdmin ? adminTechSearchTerm : gestorTechSearchTerm).trim().toLowerCase();
-  let list = [...gestores[gestor]];
-  if(searchTerm){
-    list = list.filter(t => t.display.toLowerCase().includes(searchTerm));
-  }
+  const list = [...gestores[gestor]];
   const col = TABLE_COLS.find(c=>c.key===sortState.key);
   list.sort((a,b)=>{
     let va = col.sort(a), vb = col.sort(b);
@@ -1363,10 +1143,6 @@ function renderTechTable(prefix, gestor){
   });
   const tbody = document.getElementById(prefix+'-tech-tbody');
   const expandedKey = isAdmin ? adminExpandedTechKey : gestorExpandedTechKey;
-  if(list.length === 0){
-    tbody.innerHTML = `<tr><td colspan="${TABLE_COLS.length}" style="text-align:center;color:var(--text-mute);font-family:var(--font-body);padding:18px;">Nenhum técnico encontrado.</td></tr>`;
-    return;
-  }
   tbody.innerHTML = list.map(t=>{
     const rowKey = gestor+'|'+t.nome;
     const isOpen = expandedKey === rowKey;
@@ -1384,21 +1160,9 @@ function renderTechTable(prefix, gestor){
   });
 }
 
-document.getElementById('admin-tech-search').addEventListener('input', (e)=>{
-  adminTechSearchTerm = e.target.value;
-  if(currentAdminGestor) renderTechTable('admin', currentAdminGestor);
-});
-document.getElementById('gestor-tech-search').addEventListener('input', (e)=>{
-  gestorTechSearchTerm = e.target.value;
-  if(currentGestorScope) renderTechTable('gestor', currentGestorScope);
-});
-
 function enterGestorDashboard(gestor){
   currentGestorScope = gestor;
   gestorExpandedTechKey = null;
-  gestorTechSearchTerm = '';
-  const gestorSearchInput = document.getElementById('gestor-tech-search');
-  if(gestorSearchInput) gestorSearchInput.value = '';
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('gestor-dashboard').style.display = 'block';
   document.getElementById('gestor-dash-title').textContent = 'Equipe de ' + (gestor.charAt(0)+gestor.slice(1).toLowerCase());
@@ -1441,35 +1205,19 @@ async function renderAccessTable(){
 
   const tbody = document.getElementById('access-tbody');
   const term = accessSearchTerm.toLowerCase();
+  const list = TECS.filter(t=>t.display.toLowerCase().includes(term))
+    .sort((a,b)=>a.display.localeCompare(b.display));
 
-  const tecEntries = TECS.map(t=>({
-    display: t.display, slug: t.slug, group: t.gestor, tipo: 'Técnico'
-  }));
-  const gestorEntries = GESTOR_LIST.map(g=>({
-    display: g.charAt(0)+g.slice(1).toLowerCase(), slug: gestorSlug(g), group: '—', tipo: 'Gestor'
-  }));
-
-  const combined = [...gestorEntries, ...tecEntries]
-    .filter(e=>e.display.toLowerCase().includes(term))
-    .sort((a,b)=>{
-      if(a.tipo !== b.tipo) return a.tipo === 'Gestor' ? -1 : 1;
-      return a.display.localeCompare(b.display);
-    });
-
-  tbody.innerHTML = combined.map(e=>{
-    const has = registeredSlugs.has(e.slug);
+  tbody.innerHTML = list.map(t=>{
+    const has = registeredSlugs.has(t.slug);
     const statusHTML = has
       ? `<span class="badge" style="background:var(--good-dim);color:var(--good);">Senha criada</span>`
       : `<span class="badge" style="background:var(--border-soft);color:var(--text-mute);">Aguardando 1º acesso</span>`;
-    const tipoHTML = e.tipo === 'Gestor'
-      ? `<span class="badge" style="background:var(--accent-dim);color:var(--accent);">Gestor</span>`
-      : `<span style="color:var(--text-mute);">Técnico</span>`;
     return `<tr>
-      <td style="text-align:left;font-family:var(--font-body);color:var(--text);">${e.display}</td>
-      <td>${tipoHTML}</td>
-      <td>${e.group === '—' ? '—' : e.group.charAt(0)+e.group.slice(1).toLowerCase()}</td>
+      <td style="text-align:left;font-family:var(--font-body);color:var(--text);">${t.display}</td>
+      <td>${t.gestor.charAt(0)+t.gestor.slice(1).toLowerCase()}</td>
       <td>${statusHTML}</td>
-      <td>${has ? `<button class="back-btn reset-pw-btn" data-slug="${e.slug}" data-name="${e.display.replace(/"/g,'&quot;')}" style="padding:5px 10px;font-size:12px;">Redefinir senha</button>` : '—'}</td>
+      <td>${has ? `<button class="back-btn reset-pw-btn" data-slug="${t.slug}" data-name="${t.display.replace(/"/g,'&quot;')}" style="padding:5px 10px;font-size:12px;">Redefinir senha</button>` : '—'}</td>
     </tr>`;
   }).join('');
 
@@ -1510,14 +1258,6 @@ async function doResetPassword(slug, name){
     msg.innerHTML = `<div class="msg err">Não consegui redefinir agora. Tente novamente.</div>`;
   }
 }
-
-document.getElementById('access-panel-toggle').addEventListener('click', ()=>{
-  const body = document.getElementById('access-panel-body');
-  const arrow = document.getElementById('access-panel-arrow');
-  const isOpen = body.style.display !== 'none';
-  body.style.display = isOpen ? 'none' : 'block';
-  arrow.textContent = isOpen ? 'Expandir ▾' : 'Recolher ▴';
-});
 
 document.getElementById('access-search').addEventListener('input', (e)=>{
   accessSearchTerm = e.target.value;
