@@ -655,19 +655,55 @@ async function getValorVisibleForTech(slug){
   return await getValoresVisibleForTecnicos();
 }
 
-/* ---- Ajustes manuais por técnico: valor adicional e desconto de CQ ---- */
-let manualAdjustmentsCache = {};
+/* ---- Ajustes manuais por técnico: lista de lançamentos (valor adicional / desconto CQ) ---- */
+let manualAdjustmentsCache = {}; // { slug: [ {id, tipo:'adicional'|'cq', valor, descricao, createdAt}, ... ] }
+
+function normalizeAdjustmentEntries(raw){
+  // Compatibilidade: registros antigos (formato único {extra, descontoCQ, ...}) viram entradas na lista
+  const out = {};
+  Object.keys(raw || {}).forEach(slug=>{
+    const val = raw[slug];
+    if(Array.isArray(val)){
+      out[slug] = val;
+    } else if(val && typeof val === 'object'){
+      const entries = [];
+      if(val.extra){
+        entries.push({id:'legacy-extra-'+slug, tipo:'adicional', valor:val.extra, descricao:val.descricao||'', createdAt: val.updatedAt||Date.now()});
+      }
+      if(val.descontoCQ){
+        entries.push({id:'legacy-cq-'+slug, tipo:'cq', valor:val.descontoCQ, descricao:val.descricaoCQ||'', createdAt: val.updatedAt||Date.now()});
+      }
+      out[slug] = entries;
+    } else {
+      out[slug] = [];
+    }
+  });
+  return out;
+}
+
 async function getManualAdjustments(){
   try{
     const snap = await getDoc(doc(db, 'config', 'ajustes_valores'));
-    return snap.exists() ? (snap.data().ajustes || {}) : {};
+    const raw = snap.exists() ? (snap.data().ajustes || {}) : {};
+    return normalizeAdjustmentEntries(raw);
   }catch(e){
     return {};
   }
 }
-async function setManualAdjustment(slug, extra, descontoCQ, descricao, descricaoCQ){
+async function addManualAdjustmentEntry(slug, tipo, valor, descricao){
   const current = await getManualAdjustments();
-  current[slug] = { extra: extra||0, descontoCQ: descontoCQ||0, descricao: descricao||'', descricaoCQ: descricaoCQ||'', updatedAt: Date.now() };
+  if(!current[slug]) current[slug] = [];
+  const entry = {
+    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+    tipo, valor: valor||0, descricao: descricao||'', createdAt: Date.now()
+  };
+  current[slug].push(entry);
+  await setDoc(doc(db, 'config', 'ajustes_valores'), {ajustes: current});
+  manualAdjustmentsCache = current;
+}
+async function removeManualAdjustmentEntry(slug, entryId){
+  const current = await getManualAdjustments();
+  if(current[slug]) current[slug] = current[slug].filter(e=>e.id!==entryId);
   await setDoc(doc(db, 'config', 'ajustes_valores'), {ajustes: current});
   manualAdjustmentsCache = current;
 }
@@ -754,31 +790,59 @@ function computeValorReceber(t){
     {label:'Mesh', qty: t.mesh || 0, price: PRICE_TABLE.mesh},
   ];
   const activityTotal = parts.reduce((sum,p)=> sum + p.qty*p.price, 0);
-  const adj = manualAdjustmentsCache[t.slug] || {extra:0, descontoCQ:0, descricao:'', descricaoCQ:''};
-  const extra = adj.extra || 0;
-  const descontoCQ = adj.descontoCQ || 0;
-  const descricao = adj.descricao || '';
-  const descricaoCQ = adj.descricaoCQ || '';
+  const entries = manualAdjustmentsCache[t.slug] || [];
+  const extraEntries = entries.filter(e=>e.tipo==='adicional');
+  const cqEntries = entries.filter(e=>e.tipo==='cq');
+  const extra = extraEntries.reduce((s,e)=>s+(e.valor||0),0);
+  const descontoCQ = cqEntries.reduce((s,e)=>s+(e.valor||0),0);
   const total = Math.max(activityTotal + extra - descontoCQ, 0);
-  return {parts, activityTotal, extra, descontoCQ, descricao, descricaoCQ, total};
+  return {parts, activityTotal, extra, descontoCQ, extraEntries, cqEntries, total};
+}
+function fmtDateShort(ts){
+  const d = new Date(ts);
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
 }
 function valorBreakdownHTML(t){
-  const {parts, extra, descontoCQ, descricao, descricaoCQ} = computeValorReceber(t);
+  const {parts, extraEntries, cqEntries} = computeValorReceber(t);
   let html = parts.filter(p=>p.qty>0).map(p => `
     <div class="ind-row">
       <span class="iname">${p.label} <span class="meta-note" style="color:var(--text-mute);">(${p.qty} × ${fmtBRL(p.price)})</span></span>
       <span class="ival">${fmtBRL(p.qty*p.price)}</span>
     </div>
   `).join('');
-  if(extra){
-    const descHTML = descricao ? ` <span class="meta-note" style="color:var(--text-mute);">(${descricao.replace(/</g,'&lt;')})</span>` : '';
-    html += `<div class="ind-row"><span class="iname">Ajuste manual${descHTML}</span><span class="ival" style="color:var(--good);">+${fmtBRL(extra)}</span></div>`;
-  }
-  if(descontoCQ){
-    const descCQHTML = descricaoCQ ? ` <span class="meta-note" style="color:var(--text-mute);">(${descricaoCQ.replace(/</g,'&lt;')})</span>` : '';
-    html += `<div class="ind-row"><span class="iname">Desconto CQ${descCQHTML}</span><span class="ival" style="color:var(--crit);">−${fmtBRL(descontoCQ)}</span></div>`;
-  }
+  extraEntries.forEach(e=>{
+    const descHTML = e.descricao ? ` <span class="meta-note" style="color:var(--text-mute);">(${e.descricao.replace(/</g,'&lt;')} · ${fmtDateShort(e.createdAt)})</span>` : ` <span class="meta-note" style="color:var(--text-mute);">(${fmtDateShort(e.createdAt)})</span>`;
+    html += `<div class="ind-row"><span class="iname">Ajuste manual${descHTML}</span><span class="ival" style="color:var(--good);">+${fmtBRL(e.valor)}</span></div>`;
+  });
+  cqEntries.forEach(e=>{
+    const descHTML = e.descricao ? ` <span class="meta-note" style="color:var(--text-mute);">(${e.descricao.replace(/</g,'&lt;')} · ${fmtDateShort(e.createdAt)})</span>` : ` <span class="meta-note" style="color:var(--text-mute);">(${fmtDateShort(e.createdAt)})</span>`;
+    html += `<div class="ind-row"><span class="iname">Desconto CQ${descHTML}</span><span class="ival" style="color:var(--crit);">−${fmtBRL(e.valor)}</span></div>`;
+  });
   return html || '<p style="font-size:12.5px;color:var(--text-mute);">Sem atividades registradas no período.</p>';
+}
+function manualEntriesListHTML(t){
+  const entries = (manualAdjustmentsCache[t.slug] || []).slice().sort((a,b)=>a.createdAt-b.createdAt);
+  if(entries.length === 0){
+    return '<p style="font-size:12px;color:var(--text-mute);">Nenhum lançamento manual ainda.</p>';
+  }
+  return entries.map(e=>{
+    const isAdicional = e.tipo === 'adicional';
+    const sign = isAdicional ? '+' : '−';
+    const color = isAdicional ? 'var(--good)' : 'var(--crit)';
+    const label = isAdicional ? 'Valor adicional' : 'Desconto CQ';
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border-soft);">
+        <div style="min-width:0;">
+          <div style="font-size:12.5px;color:var(--text);">${label}${e.descricao ? ' — '+e.descricao.replace(/</g,'&lt;') : ''}</div>
+          <div style="font-size:10.5px;color:var(--text-mute);">${fmtDateShort(e.createdAt)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <span style="font-family:var(--font-mono);font-weight:600;color:${color};font-size:13px;">${sign}${fmtBRL(e.valor)}</span>
+          <button type="button" class="manual-entry-delete" data-slug="${t.slug}" data-entry-id="${e.id}" title="Excluir lançamento" style="background:none;border:none;color:var(--text-mute);cursor:pointer;font-size:15px;padding:2px 6px;">×</button>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 function avg(arr){ const vals = arr.filter(v=>v!==null && v!==undefined && !isNaN(v)); if(vals.length===0) return null; return vals.reduce((a,b)=>a+b,0)/vals.length; }
 
@@ -1551,16 +1615,22 @@ function adminTechDetailHTML(t){
         ${valorBreakdownHTML(t)}
 
         <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-          <label for="extra-${t.slug}" style="font-size:11px;">Valor adicional (R$)</label>
-          <input type="number" step="0.01" id="extra-${t.slug}" class="manual-adj-extra" data-slug="${t.slug}" value="${valorInfo.extra || ''}" placeholder="0,00" style="margin-bottom:10px;">
-          <label for="desc-${t.slug}" style="font-size:11px;">Descrição do valor adicional</label>
-          <input type="text" id="desc-${t.slug}" class="manual-adj-desc" data-slug="${t.slug}" value="${(valorInfo.descricao||'').replace(/"/g,'&quot;')}" placeholder="Ex: NAP atenuada" style="margin-bottom:10px;">
-          <label for="desconto-${t.slug}" style="font-size:11px;">Desconto de CQ (R$)</label>
-          <input type="number" step="0.01" id="desconto-${t.slug}" class="manual-adj-desconto" data-slug="${t.slug}" value="${valorInfo.descontoCQ || ''}" placeholder="0,00" style="margin-bottom:10px;">
-          <label for="desccq-${t.slug}" style="font-size:11px;">Motivo do desconto de CQ</label>
-          <input type="text" id="desccq-${t.slug}" class="manual-adj-desccq" data-slug="${t.slug}" value="${(valorInfo.descricaoCQ||'').replace(/"/g,'&quot;')}" placeholder="Ex: Reincidência de queda">
-          <button type="button" class="btn-primary manual-adj-save" data-slug="${t.slug}" style="margin-top:10px;padding:8px 12px;font-size:12.5px;">Salvar ajustes</button>
-          <div class="manual-adj-msg" data-slug="${t.slug}" style="font-size:11.5px;margin-top:6px;"></div>
+          <h4 style="margin:0 0 10px;">Lançamentos manuais</h4>
+          <div class="manual-entries-list" data-slug="${t.slug}">${manualEntriesListHTML(t)}</div>
+
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);">
+            <label style="font-size:11px;">Tipo de lançamento</label>
+            <select class="manual-adj-tipo" data-slug="${t.slug}" style="width:100%;background:var(--bg-elev);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-family:var(--font-body);font-size:14px;margin-bottom:10px;">
+              <option value="adicional">Valor adicional</option>
+              <option value="cq">Desconto de CQ</option>
+            </select>
+            <label for="novo-valor-${t.slug}" style="font-size:11px;">Valor (R$)</label>
+            <input type="number" step="0.01" id="novo-valor-${t.slug}" class="manual-adj-novo-valor" data-slug="${t.slug}" placeholder="0,00" style="margin-bottom:10px;">
+            <label for="novo-desc-${t.slug}" style="font-size:11px;">Descrição / motivo</label>
+            <input type="text" id="novo-desc-${t.slug}" class="manual-adj-novo-desc" data-slug="${t.slug}" placeholder="Ex: NAP atenuada dia 05">
+            <button type="button" class="btn-primary manual-adj-add" data-slug="${t.slug}" style="margin-top:10px;padding:8px 12px;font-size:12.5px;">+ Adicionar lançamento</button>
+            <div class="manual-adj-msg" data-slug="${t.slug}" style="font-size:11.5px;margin-top:6px;"></div>
+          </div>
         </div>
 
         <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
@@ -1655,30 +1725,47 @@ function renderTechTable(prefix, gestor){
       btn.disabled = false;
     });
   });
-  tbody.querySelectorAll('.manual-adj-save').forEach(btn=>{
+  tbody.querySelectorAll('.manual-adj-add').forEach(btn=>{
     btn.addEventListener('click', async (e)=>{
       e.stopPropagation();
       const slug = btn.dataset.slug;
-      const extraInput = tbody.querySelector(`.manual-adj-extra[data-slug="${slug}"]`);
-      const descInput = tbody.querySelector(`.manual-adj-desc[data-slug="${slug}"]`);
-      const descontoInput = tbody.querySelector(`.manual-adj-desconto[data-slug="${slug}"]`);
-      const descCQInput = tbody.querySelector(`.manual-adj-desccq[data-slug="${slug}"]`);
+      const tipoSel = tbody.querySelector(`.manual-adj-tipo[data-slug="${slug}"]`);
+      const valorInput = tbody.querySelector(`.manual-adj-novo-valor[data-slug="${slug}"]`);
+      const descInput = tbody.querySelector(`.manual-adj-novo-desc[data-slug="${slug}"]`);
       const msgEl = tbody.querySelector(`.manual-adj-msg[data-slug="${slug}"]`);
-      const extraVal = parseFloat((extraInput.value || '0').replace(',','.')) || 0;
-      const descontoVal = parseFloat((descontoInput.value || '0').replace(',','.')) || 0;
-      const descricaoVal = (descInput.value || '').trim();
-      const descricaoCQVal = (descCQInput.value || '').trim();
+      const valorVal = parseFloat((valorInput.value || '0').replace(',','.')) || 0;
+      if(valorVal <= 0){
+        if(msgEl) msgEl.innerHTML = '<span style="color:var(--crit);">Informe um valor maior que zero.</span>';
+        return;
+      }
+      const tipoVal = tipoSel.value;
+      const descVal = (descInput.value || '').trim();
       btn.disabled = true;
-      btn.textContent = 'Salvando...';
+      btn.textContent = 'Adicionando...';
       try{
-        await setManualAdjustment(slug, extraVal, descontoVal, descricaoVal, descricaoCQVal);
-        if(msgEl) msgEl.innerHTML = '<span style="color:var(--good);">Ajustes salvos.</span>';
+        await addManualAdjustmentEntry(slug, tipoVal, valorVal, descVal);
+        if(msgEl) msgEl.innerHTML = '<span style="color:var(--good);">Lançamento adicionado.</span>';
         renderTechTable(prefix, gestor);
       }catch(err){
         console.warn(err);
-        if(msgEl) msgEl.innerHTML = '<span style="color:var(--crit);">Não foi possível salvar agora.</span>';
+        if(msgEl) msgEl.innerHTML = '<span style="color:var(--crit);">Não foi possível adicionar agora.</span>';
         btn.disabled = false;
-        btn.textContent = 'Salvar ajustes';
+        btn.textContent = '+ Adicionar lançamento';
+      }
+    });
+  });
+  tbody.querySelectorAll('.manual-entry-delete').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const slug = btn.dataset.slug;
+      const entryId = btn.dataset.entryId;
+      btn.disabled = true;
+      try{
+        await removeManualAdjustmentEntry(slug, entryId);
+        renderTechTable(prefix, gestor);
+      }catch(err){
+        console.warn(err);
+        btn.disabled = false;
       }
     });
   });
