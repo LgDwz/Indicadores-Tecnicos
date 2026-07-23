@@ -396,6 +396,29 @@
       </div>
     </section>
 
+    <section id="areas-panel" class="card" style="margin-bottom:32px;">
+      <button type="button" id="areas-panel-toggle" style="width:100%;background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;">
+        <div class="section-title" style="margin:0;flex:1;">
+          <h2>Mapeamento de Áreas (Rodízio)</h2>
+          <span class="hint">Área de atuação de todos os técnicos, de todos os gestores, em um só lugar</span>
+        </div>
+        <span id="areas-panel-arrow" style="color:var(--text-mute);font-size:13px;flex-shrink:0;">Expandir ▾</span>
+      </button>
+
+      <div id="areas-panel-body" style="display:none;margin-top:18px;">
+        <div class="field-wrap" style="margin-bottom:14px;max-width:360px;">
+          <input type="text" id="areas-search" placeholder="Buscar técnico por nome...">
+        </div>
+        <p style="font-size:12px;color:var(--text-mute);margin:0 0 12px;">Clique em um técnico para ver o detalhamento das 3 áreas onde ele mais atuou.</p>
+        <div class="table-scroll">
+          <table class="tech-table" id="areas-table">
+            <thead><tr id="areas-thead-row"></tr></thead>
+            <tbody id="areas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <section id="admin-access-panel" class="card" style="margin-bottom:32px;">
       <button type="button" id="access-panel-toggle" style="width:100%;background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;">
         <div class="section-title" style="margin:0;flex:1;">
@@ -1205,7 +1228,8 @@ function refreshCurrentView(){
     renderAdminBanner();
     renderAdminGestorGrid();
     renderAdminGestorChart();
-    renderAccessTable();
+    if(!isViewerMode) renderAccessTable();
+    renderAreasTable();
     if(document.getElementById('admin-detail-panel').style.display !== 'none' && currentAdminGestor){
       const metricWrap = document.getElementById('admin-metric-select');
       const currentMetric = (metricWrap && metricWrap.dataset.value) || 'composite';
@@ -2026,6 +2050,103 @@ function enterGestorDashboard(gestor){
   refreshManualAdjustmentsCache().then(()=> renderTechTable('gestor', gestor));
 }
 
+/* ================= MAPEAMENTO DE ÁREAS (visão completa, todos os gestores) ================= */
+let areasSortState = {key:'area1', dir:'desc'};
+let areasSearchTerm = '';
+let areasExpandedSlug = null;
+
+const AREAS_TABLE_COLS = [
+  {key:'display', label:'Técnico', sort:(t)=>t.display},
+  {key:'gestor', label:'Gestor', sort:(t)=>t.gestor, fmt:(t)=>t.gestor.charAt(0)+t.gestor.slice(1).toLowerCase()},
+  {key:'area1', label:'Área Principal', sort:(t)=>(t.areasTop3 && t.areasTop3[0]) ? t.areasTop3[0].qty : 0, fmt:(t)=> (t.areasTop3 && t.areasTop3.length) ? `${AREA_NAME_SHORT[t.areasTop3[0].code]||t.areasTop3[0].name} (${t.areasTop3[0].pct.toFixed(0)}%)` : '—'},
+];
+
+function renderAreasTableHead(){
+  const row = document.getElementById('areas-thead-row');
+  row.innerHTML = AREAS_TABLE_COLS.map(c=>`<th data-key="${c.key}">${c.label}</th>`).join('');
+  row.querySelectorAll('th').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.key;
+      if(areasSortState.key===key){ areasSortState.dir = areasSortState.dir==='desc'?'asc':'desc'; }
+      else { areasSortState = {key, dir:'desc'}; }
+      renderAreasTable();
+    });
+  });
+}
+
+function areasTechDetailHTML(t){
+  if(!t.areasTop3 || !t.areasTop3.length){
+    return '<p style="padding:16px 18px;font-size:12.5px;color:var(--text-mute);">Sem dados de área para este técnico.</p>';
+  }
+  const barColors = ['var(--accent)','#9089f2','#f2a93b'];
+  return `
+    <div style="padding:16px 18px;max-width:480px;">
+      ${t.areasTop3.map((a,i)=>`
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+            <span style="font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;background:${barColors[i]||'var(--text-mute)'}22;color:${barColors[i]||'var(--text-mute)'};font-family:var(--font-mono);font-size:11px;font-weight:700;flex-shrink:0;">${i+1}</span>
+              ${a.name}
+            </span>
+            <span style="font-family:var(--font-mono);font-size:12.5px;color:var(--text-soft);">${a.qty} <span style="color:var(--text-mute);">(${a.pct.toFixed(0)}%)</span></span>
+          </div>
+          <div class="ind-bar-track"><div class="ind-bar-fill" style="width:${a.pct.toFixed(0)}%;background:${barColors[i]||'var(--text-mute)'};"></div></div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderAreasTable(){
+  const tbody = document.getElementById('areas-tbody');
+  if(!tbody) return;
+  const term = areasSearchTerm.trim().toLowerCase();
+  let list = TECS.filter(t=>t.areasTop3 && t.areasTop3.length > 0);
+  if(term) list = list.filter(t=>t.display.toLowerCase().includes(term));
+  const col = AREAS_TABLE_COLS.find(c=>c.key===areasSortState.key);
+  list = [...list].sort((a,b)=>{
+    let va = col.sort(a), vb = col.sort(b);
+    if(typeof va === 'string'){ return areasSortState.dir==='asc' ? va.localeCompare(vb) : vb.localeCompare(va); }
+    const na=(va===null||va===undefined), nb=(vb===null||vb===undefined);
+    if(na&&nb) return 0; if(na) return 1; if(nb) return -1;
+    return areasSortState.dir==='asc' ? va-vb : vb-va;
+  });
+  const thead = document.getElementById('areas-thead-row');
+  thead.querySelectorAll('th').forEach(th=>{
+    th.classList.toggle('sorted', th.dataset.key===areasSortState.key);
+    th.classList.toggle('asc', th.dataset.key===areasSortState.key && areasSortState.dir==='asc');
+  });
+  if(list.length === 0){
+    tbody.innerHTML = `<tr><td colspan="${AREAS_TABLE_COLS.length}" style="text-align:center;color:var(--text-mute);font-family:var(--font-body);padding:18px;">Nenhum técnico encontrado.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(t=>{
+    const isOpen = areasExpandedSlug === t.slug;
+    const mainRow = `<tr class="tech-row ${isOpen?'is-open':''}" data-slug="${t.slug}">${AREAS_TABLE_COLS.map(c=>`<td>${c.fmt?c.fmt(t):t[c.key]}</td>`).join('')}</tr>`;
+    const detailRow = isOpen ? `<tr class="tech-detail-row"><td colspan="${AREAS_TABLE_COLS.length}">${areasTechDetailHTML(t)}</td></tr>` : '';
+    return mainRow + detailRow;
+  }).join('');
+  tbody.querySelectorAll('tr.tech-row').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const slug = tr.dataset.slug;
+      areasExpandedSlug = areasExpandedSlug === slug ? null : slug;
+      renderAreasTable();
+    });
+  });
+}
+
+document.getElementById('areas-panel-toggle').addEventListener('click', ()=>{
+  const body = document.getElementById('areas-panel-body');
+  const arrow = document.getElementById('areas-panel-arrow');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? 'Expandir ▾' : 'Recolher ▴';
+});
+document.getElementById('areas-search').addEventListener('input', (e)=>{
+  areasSearchTerm = e.target.value;
+  renderAreasTable();
+});
+
 function enterAdmin(){
   isViewerMode = false;
   document.getElementById('login-screen').style.display = 'none';
@@ -2039,6 +2160,8 @@ function enterAdmin(){
   renderAdminTableHead();
   renderAccessTable();
   refreshValoresToggleButton('admin-toggle-valores-btn');
+  renderAreasTableHead();
+  renderAreasTable();
 }
 
 function enterViewer(name){
@@ -2052,6 +2175,8 @@ function enterViewer(name){
   renderAdminGestorGrid();
   renderAdminGestorChart();
   renderAdminTableHead();
+  renderAreasTableHead();
+  renderAreasTable();
 }
 
 /* ================= ADMIN: GERENCIAR ACESSOS ================= */
